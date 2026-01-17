@@ -1,0 +1,29 @@
+
+Table pages {
+    id integer pk
+    title varchar
+    parent_page_id integer // not-nullable for subpages only
+    created_at timestamp
+    updated_at timestamp
+}
+
+Table blocks {
+    id integer pk
+    page_id integer [not null]
+    parent_block_id integer
+    type varchar [not null]
+    order decimal(10, 5)
+    created_at timestamp
+    updated_at timestamp
+}
+
+
+Table block_data {
+    block_id integer pk
+    data json [not null]
+}
+
+Ref: blocks.page_id > pages.id
+Ref: block_data.block_id > blocks.id
+
+

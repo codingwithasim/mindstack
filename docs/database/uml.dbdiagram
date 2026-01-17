@@ -1,0 +1,29 @@
+{
+  "version": "1.0.0",
+  "darkMode": true,
+  "gridEnabling": true,
+  "detailLevel": "All",
+  "tablePositions": [
+    {
+      "name": "pages",
+      "schemaName": "public",
+      "x": 467.7601673260285,
+      "y": -242.63523518620212
+    },
+    {
+      "name": "blocks",
+      "schemaName": "public",
+      "x": 471.33642578125,
+      "y": 12
+    },
+    {
+      "name": "block_data",
+      "schemaName": "public",
+      "x": 176,
+      "y": 168
+    }
+  ],
+  "tableGroupCollapseStates": [],
+  "stickyNoteLayouts": [],
+  "referencePaths": []
+}
