@@ -25,5 +25,5 @@ CREATE TABLE `pages` (
 	FOREIGN KEY (`parent_page_id`) REFERENCES `pages`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE INDEX idx_blocks_page_order ON blocks(page_id, order);
-CREATE INDEX idx_blocks_parent_order ON blocks(parent_block_id, order);
+CREATE INDEX idx_blocks_page_order ON blocks(page_id, "order");
+CREATE INDEX idx_blocks_parent_order ON blocks(parent_block_id, "order");
