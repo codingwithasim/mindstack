@@ -3,6 +3,7 @@
 import { File, FileText, Home, LayoutDashboard, PenLine, Search, Settings, Trash } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "./ui/sidebar"
 import { useEffect, useState } from "react"
+import Link from "next/link"
 
 export default function AppSideBar(){
 
@@ -51,8 +52,11 @@ export default function AppSideBar(){
                             pages.slice(0, 5).map(page => {
                                 return (
                                     <SidebarMenuItem key={page.id}>
-                                        <SidebarMenuButton>
-                                            <FileText/> {page.title ?? "New page"}
+                                        <SidebarMenuButton asChild>
+                                            <Link href={"/pages/" + page.id}>
+                                                <FileText/> {page.title ?? "New page"}
+                                            </Link>
+                                            
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )

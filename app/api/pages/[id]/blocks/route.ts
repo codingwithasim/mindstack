@@ -1,3 +1,4 @@
+import { isValidOrder } from "@/app/api/blocks/[id]/route";
 import client from "@/db/client";
 import { blockData, blocks } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
@@ -27,19 +28,25 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
 
     const parentBlockId = payload.parentBlockId ? Number(payload.parentBlockId) : null
 
-    const lastOrderRow = await client
+    let order = "1.00000";
+
+    if(payload.order && isValidOrder(payload.order)){
+        order = payload.order
+    }else{
+        const lastOrderRow = await client
         .select({lastOrder: blocks.order})
         .from(blocks)
         .where(eq(blocks.pageId, pageId))
         .orderBy(desc(blocks.order))
         .limit(1)
 
-    let order = "1.00000";
-
-    if(lastOrderRow.length > 0){
-        const lastOrder = parseFloat(lastOrderRow[0].lastOrder)
-        order = (lastOrder + 1).toFixed(5)
+        if(lastOrderRow.length > 0){
+            const lastOrder = parseFloat(lastOrderRow[0].lastOrder)
+            order = (lastOrder + 1).toFixed(5)
+        }
     }
+
+    
 
     const timestamp = new Date()
 

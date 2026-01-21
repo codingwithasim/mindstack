@@ -107,7 +107,7 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
     })
 }
 /**Checks if order is correct*/
-function isValidOrder(order: unknown): boolean {
+export function isValidOrder(order: unknown): boolean {
     if(typeof order !== "string") return false
 
     const num = Number(order)
