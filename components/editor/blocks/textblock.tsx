@@ -1,53 +1,28 @@
 "use client"
 
 
-import { FormEvent, RefObject, useEffect, useRef, useState } from "react";
+import Editable from "@/components/ui/editable";
+import { FormEvent, HTMLAttributes, RefObject, useEffect, useRef, useState } from "react";
 
-interface TextBlockProps {
+type TextBlockProps = {
     id: number
     order: string
     data: { text: string }
     parentBlockId?: number
-    onEnter?: (currentBlock: number) => void
+    onEnter?: (currentBlock: number, cursorPos: number) => void
     onChange?: (id: number, value: string) => void
     onFocus?: () => void
-    onBackspace?: (id: number) => void
+    onBackspace?: (id: number, cursorPos: number) => void
     focus?: boolean
-}
+} & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-export default function TextBlock({ id, data, onChange, onEnter, focus = false, onFocus, onBackspace }: TextBlockProps) {
-
-    const [value, setValue] = useState(data.text)
-
-    const divRef: RefObject<HTMLDivElement | undefined> = useRef(undefined)
+export default function TextBlock({ id, data, onChange, onEnter, focus = false, onFocus, onBackspace, ...props }: TextBlockProps) {
 
 
-    const handleInputChange = (e: FormEvent) => {
-        const value = e.currentTarget.textContent
+    const saveChanges = (e: FormEvent) => {
 
-        setValue(value)
-
-        if (onChange) {
-            onChange(id, value)
-        }
-    }
-
-    useEffect(() => {
-        if (divRef.current) {
-            divRef.current.textContent = value;
-        }
-    }, []);
-
-    useEffect(() => {
-        if (focus && divRef.current) {
-            divRef.current.focus()
-        }
-    }, [focus])
-
-
-    const saveChanges = () => {
-        if (value === data.text) return
+        const value: string = e.currentTarget.textContent ?? ""
 
         fetch("/api/blocks/" + id, {
             method: "PATCH",
@@ -62,36 +37,36 @@ export default function TextBlock({ id, data, onChange, onEnter, focus = false, 
         })
     }
 
+    const {defaultValue, ...rest} = props
+
     return (
-        <div
-            contentEditable
-            role="textbox"
-            ref={divRef}
-            tabIndex={0}
-            aria-multiline
+        <Editable
+            value={data.text}
+            onClick={() => { if (onFocus) onFocus() }}
+            onChange={value => { if (onChange) onChange(id, value.toString()) }}
             onBlur={saveChanges}
-            onInput={handleInputChange}
-            onClick={() => {
-                if (onFocus) {
-                    onFocus()
-                }
-            }}
+            requestFocus={focus}
             onKeyDown={e => {
                 if (e.key === "Enter") {
                     e.preventDefault()
 
                     if (onEnter) {
-                        onEnter(id)
+                        const selection = window.getSelection()
+                        
+                        onEnter(id, selection?.anchorOffset ?? -1)
                     }
                 }
 
-                if(e.key === "Backspace" && value.length == 0){
-                    if(onBackspace) onBackspace(id)
+                if(e.key === "Backspace"){
+                    if(onBackspace) onBackspace(id, window.getSelection()?.anchorOffset ?? -1)
                 }
+
+                // if (e.key === "Backspace" && data.text.length == 0) {
+                //     if (onBackspace) onBackspace(id)
+                // }
             }}
-            className="text-[16px] py-1.5 leading-noraml focus:outline-none"
-            suppressContentEditableWarning>
-        </div>
+            {...rest}
+        />
     )
 
 

@@ -1,9 +1,11 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import TextBlock from "./blocks/textblock"
 import useEditor from "@/hooks/useEditor"
+import Editable from "../ui/editable"
+import { Trash } from "lucide-react"
 
 type EditorProps = {
     params: { id: number }
@@ -27,19 +29,27 @@ export default function Editor({ params }: EditorProps) {
             </header>
             <main
                 className="max-w-[1024px] h-full m-auto">
+
                 {
                     editor.blocks.map((block, idx) => {
 
                         return (
-                            <TextBlock
-                                key={block.id}
-                                id={block.id}
-                                order={block.order}
-                                focus={idx === editor.currentIndex}
-                                onEnter={editor.handleEnter}
-                                onFocus={() => editor.setIndex(idx)}
-                                onBackspace={editor.deleteBlock}
-                                data={block.data} />
+                            <div className="flex group" key={idx}>
+                                <TextBlock
+                                    key={block.id}
+                                    id={block.id}
+                                    order={block.order}
+                                    focus={idx === editor.currentIndex}
+                                    onEnter={editor.handleEnter}
+                                    onFocus={() => editor.setIndex(idx)}
+                                    onBackspace={editor.handleBackspace}
+                                    className="flex-1"
+                                    onChange={(blockId, value) => editor.handleDataChanges(blockId, value)}
+                                    data={block.data}
+                                />
+
+                                <Trash className="opacity-0 cursor-pointer group-hover:opacity-55" size={16} onClick={()=> editor.deleteBlock(block.id)}/>
+                            </div>
                         )
                     })
                 }
