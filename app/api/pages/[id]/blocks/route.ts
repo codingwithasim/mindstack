@@ -26,23 +26,30 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
         )
     }
 
-    const parentBlockId = payload.parentBlockId ? Number(payload.parentBlockId) : null
+    if(!payload.id || typeof payload.id !== "string"){
+        return NextResponse.json(
+            {error: "No valid id provided"},
+            {status: 400}
+        )
+    }
 
-    let order = "1.00000";
+    const parentBlockId = payload.parentBlockId ? payload.parentBlockId : null
 
-    if(payload.order && isValidOrder(payload.order)){
-        order = payload.order
+    let blockOrder = "1.00000";
+
+    if(payload.blockOrder && isValidOrder(payload.blockOrder)){
+        blockOrder = payload.blockOrder
     }else{
         const lastOrderRow = await client
-        .select({lastOrder: blocks.order})
+        .select({lastOrder: blocks.blockOrder})
         .from(blocks)
         .where(eq(blocks.pageId, pageId))
-        .orderBy(desc(blocks.order))
+        .orderBy(desc(blocks.blockOrder))
         .limit(1)
 
         if(lastOrderRow.length > 0){
             const lastOrder = parseFloat(lastOrderRow[0].lastOrder)
-            order = (lastOrder + 1).toFixed(5)
+            blockOrder = (lastOrder + 1).toFixed(5)
         }
     }
 
@@ -54,15 +61,16 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
     const result = await client
         .insert(blocks)
         .values({
+            id: payload.id,
             pageId,
             parentBlockId,
-            order,
+            blockOrder,
             type: payload.type,
             createdAt: timestamp,
             updatedAt: timestamp
         })
 
-    const blockId = Number(result.lastInsertRowid)
+    const blockId = payload.id
     
     await client
         .insert(blockData)
@@ -71,12 +79,13 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
             data: JSON.stringify(payload.data || { text: "" })
         })
 
+
     return NextResponse.json({
         id: blockId,
         pageId,
         parentBlockId,
         type: payload.type,
-        order,
+        blockOrder,
         data: payload.data || { text: ""},
         createdAt: timestamp.getTime(),
         updatedAt: timestamp.getTime()
@@ -100,7 +109,7 @@ export async function GET(req: NextRequest, {params}: {params: {id: string}}){
         .select({
             id: blocks.id,
             type: blocks.type,
-            order: blocks.order,
+            order: blocks.blockOrder,
             data: blockData.data,
             parentBlockId: blocks.parentBlockId,
             createdAt: blocks.createdAt,
@@ -109,7 +118,7 @@ export async function GET(req: NextRequest, {params}: {params: {id: string}}){
         .from(blocks)
         .leftJoin(blockData, eq(blocks.id, blockData.blockId))
         .where(eq(blocks.pageId, pageId))
-        .orderBy(blocks.order)
+        .orderBy(blocks.blockOrder)
 
     return NextResponse.json(result)
 }

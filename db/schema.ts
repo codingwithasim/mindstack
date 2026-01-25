@@ -1,5 +1,5 @@
 import { ColumnBaseConfig, ColumnDataType } from "drizzle-orm";
-import { integer, numeric, SQLiteColumn, SQLiteTable, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, numeric, SQLiteColumn, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 /* ===================== Pages ===================== */
 export const pages = sqliteTable("pages", {
@@ -13,19 +13,20 @@ export const pages = sqliteTable("pages", {
 
 /* ===================== Blocks ===================== */
 export const blocks = sqliteTable("blocks", {
-    id: integer("id").primaryKey({autoIncrement: true}),
+    pk_id: integer("pk_id").primaryKey({autoIncrement: true}),
+    id: text("id").unique().notNull(),
     pageId: integer("page_id").notNull()
         .references(() => pages.id, {onDelete: "cascade"}),
-    parentBlockId: integer("parent_block_id")
+    parentBlockId: text("parent_block_id")
         .references((): SQLiteColumn<ColumnBaseConfig<ColumnDataType, string>> => blocks.id, {onDelete: "cascade"}),
     type: text("type").notNull(),
-    order: numeric("order", {mode: "string"}).notNull(),
+    blockOrder: numeric("order", {mode: "string"}).notNull(),
     createdAt: integer("created_at", {mode: "timestamp"}).notNull(),
     updatedAt: integer("updated_at", {mode: "timestamp"}).notNull(),
 })
 
 /* ===================== Block Data ===================== */
 export const blockData = sqliteTable("block_data", {
-    blockId: integer("block_id").primaryKey().references(() => blocks.id, {onDelete: "cascade"}),
+    blockId: text("block_id").primaryKey().references(() => blocks.id, {onDelete: "cascade"}),
     data: text("data", {mode: "json"}).notNull()
 })

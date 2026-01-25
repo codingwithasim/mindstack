@@ -6,9 +6,9 @@ import { NextRequest, NextResponse } from "next/server";
 /**Deletes a block and all its metadata*/
 export async function DELETE(req: NextRequest, { params }: { params: { id: string }}){
     const { id } = await params
-    const blockId = Number(id)
+    const blockId = String(id)
 
-    if(Number.isNaN(blockId)){
+    if(!blockId){
         return NextResponse.json(
             {error: "Invalid block id"},
             {status: 400}
@@ -35,9 +35,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 /**Update any block and/or it's data*/
 export async function PATCH(req: NextRequest, {params}: { params: {id: string}}){
     const { id } = await params
-    const blockId = Number(id)
+    const blockId = String(id)
 
-    if(Number.isNaN(blockId)){
+    if(!blockId){
         return NextResponse.json(
             {error: "Invalid block id"},
             {status: 400}
@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
         )
     }
 
-    if(payload.order && !isValidOrder(payload.order)){
+    if(payload.blockOrder && !isValidOrder(payload.blockOrder)){
         return NextResponse.json(
             {error: "Invalid order"}, {status: 400}
         )
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
     }> = {}
 
     if(payload.type) blockUpdate.type = payload.type
-    if(payload.order) blockUpdate.order = Number(payload.order).toFixed(5)
+    if(payload.blockOrder) blockUpdate.order = Number(payload.blockOrder).toFixed(5)
 
     if(Object.keys(blockUpdate).length > 0){
         blockUpdate.updatedAt = new Date()

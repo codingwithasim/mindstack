@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type Block = {
-    id: number
+    id: string
     parentBlockId: number | null
     type: string
     order: string
@@ -21,6 +21,7 @@ export default function useEditor(pageId: number) {
 
 
     useEffect(() => {
+
         /**Load page title*/
         fetch("/api/pages/" + pageId).then(response => {
             response.json().then(page => {
@@ -73,7 +74,7 @@ export default function useEditor(pageId: number) {
         }
     }
 
-    const handleEnter = async (blockId: number, cursorPos: number) => {
+    const handleEnter = async (blockId, cursorPos: number) => {
 
         const index = blocks.findIndex(b => b.id === blockId)
 
@@ -85,13 +86,13 @@ export default function useEditor(pageId: number) {
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
         const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
 
-
         const current: Block = blocks[index]
         const beforeText: string = current.data.text.slice(0, cursorPos);
         const afterText: string = current.data.text.slice(cursorPos);
 
         //Add a block with temp id for optimisitic UI + Re-order blocks
-        const tempId: number = - Date.now()
+        const newBlockId = crypto.randomUUID()
+
 
         //Checks if cursor is at the end of the line
         //It is used to find out whether to cut the text or not
@@ -108,7 +109,7 @@ export default function useEditor(pageId: number) {
                     updatedAt: Date.now()
                 },
                 {
-                    id: tempId,
+                    id: newBlockId,
                     type: "text",
                     order: newOrder,
                     createdAt: Date.now(),
@@ -124,36 +125,28 @@ export default function useEditor(pageId: number) {
 
         //Call API
         //Creates the new block
-        setFocusedIndex(prev => prev ? prev + 1 : 0)
+        setFocusedIndex(index + 1)
+
 
         const res = await fetch("/api/pages/" + pageId + "/blocks", {
             method: "POST",
             body: JSON.stringify({
+                id: newBlockId,
                 type: "text",
-                order: newOrder,
+                blockOrder: newOrder,
                 data: { text: cursorAtEnd ? "" : afterText }
             })
         })
 
         //Edits the previous block if cursorAtEnd is false
         if (!cursorAtEnd) {
-            const res = await fetch("/api/blocks/" + blockId, {
+            await fetch("/api/blocks/" + blockId, {
                 method: "PATCH",
                 body: JSON.stringify({
                     data: { text: beforeText }
                 })
             })
         }
-
-        const newBlock = await res.json()
-
-        //Replace the tempId with the new one
-        setBlocks(blocks => blocks.map(b => {
-            if (b.id === tempId) {
-                return { ...b, id: newBlock.id }
-            }
-            return b
-        }))
     }
 
     const deleteBlock = async (blockId: number) => {
