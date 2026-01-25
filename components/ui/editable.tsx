@@ -9,9 +9,10 @@ type EditableProps = {
     onChange?: (value: string) => void,
     className?: string
     requestFocus?: boolean
+    registerRef?: (el: HTMLDivElement) => void
 } & HTMLAttributes<HTMLDivElement>
 
-export default function Editable({ value: controlledValue, defaultValue = "", requestFocus= false, onChange, className, ...props}: EditableProps) {
+export default function Editable({ value: controlledValue, defaultValue = "", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps) {
     const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
     const divRef = useRef<HTMLDivElement>(null)
     const isControlled = controlledValue !== undefined
@@ -26,6 +27,15 @@ export default function Editable({ value: controlledValue, defaultValue = "", re
             node.textContent = nextValue
         }
     }, [value])
+
+    useEffect(()=> {
+        if(!divRef.current) return
+
+        if(registerRef){
+            registerRef(divRef.current)
+        }
+        
+    }, [registerRef])
 
     useEffect(()=> {
         if(divRef.current && requestFocus){

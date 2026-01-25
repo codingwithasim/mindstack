@@ -17,7 +17,7 @@ export default function useEditor(pageId: number) {
     const [title, setTitle] = useState<string>("")
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
-
+    const cursorRef = useRef<Map<string, HTMLDivElement>>(new Map())
 
 
     useEffect(() => {
@@ -74,7 +74,16 @@ export default function useEditor(pageId: number) {
         }
     }
 
-    const handleEnter = async (blockId, cursorPos: number) => {
+    const registerRef = (id: string, el: HTMLDivElement) => {
+        if(el){
+            cursorRef.current.set(id, el)
+        }else{
+            cursorRef.current.delete(id)
+        }
+
+    }
+
+    const handleEnter = async (blockId: string, cursorPos: number) => {
 
         const index = blocks.findIndex(b => b.id === blockId)
 
@@ -149,7 +158,7 @@ export default function useEditor(pageId: number) {
         }
     }
 
-    const deleteBlock = async (blockId: number) => {
+    const deleteBlock = async (blockId: string) => {
 
         if (focusedIndex == 0) return;
 
@@ -165,7 +174,7 @@ export default function useEditor(pageId: number) {
         })
     }
 
-    const handleDataChanges = (blockId: number, value: string) => {
+    const handleDataChanges = (blockId: string, value: string) => {
         setBlocks(prev => prev.map(block => {
             if (block.id === blockId) {
                 return { ...block, data: { text: value } }
@@ -174,15 +183,14 @@ export default function useEditor(pageId: number) {
         }))
     }
 
-    const handleBackspace = async (blockId: number, cursorPos: number) => {
-
-        console.log(blockId, cursorPos);
+    const handleBackspace = async (blockId: string, cursorPos: number) => {
 
         if (cursorPos) return
 
         const idx = blocks.findIndex(b => b.id === blockId)
 
-        if (!idx) return
+        if (idx <= 0) return
+
 
         setBlocks(prev => {
             const updates: Block[] = [
@@ -201,12 +209,39 @@ export default function useEditor(pageId: number) {
         })
 
         setFocusedIndex(idx - 1)
+        focusAt(blocks[idx - 1].id, blocks[idx-1].data.text.length)
 
         await fetch("/api/blocks/" + blockId, {
             method: "DELETE"
         })
 
+
     }
+
+    function focusAt(blockId: string, offset: number) {
+        requestAnimationFrame(() => {
+            const el = cursorRef.current.get(blockId)
+
+            if (!el) return
+
+            el.focus()
+
+            const selection = window.getSelection()
+            if (!selection) return
+
+            const range = document.createRange()
+
+            const textNode = el.firstChild
+            if (!textNode || textNode.nodeType !== Node.TEXT_NODE) return
+
+            range.setStart(textNode, Math.min(offset, textNode.textContent!.length))
+            range.collapse(true)
+
+            selection.removeAllRanges()
+            selection.addRange(range)
+        })
+    }
+
 
     return {
         title,
@@ -217,6 +252,7 @@ export default function useEditor(pageId: number) {
         handleEnter,
         deleteBlock,
         handleDataChanges,
-        handleBackspace
+        handleBackspace,
+        registerRef
     }
 }

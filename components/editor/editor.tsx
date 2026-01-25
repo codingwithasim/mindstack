@@ -40,12 +40,15 @@ export default function Editor({ params }: EditorProps) {
                                     id={block.id}
                                     order={block.order}
                                     focus={idx === editor.currentIndex}
-                                    onEnter={editor.handleEnter}
+                                    onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
                                     onFocus={() => editor.setIndex(idx)}
                                     onBackspace={editor.handleBackspace}
                                     className="flex-1"
                                     onChange={(blockId, value) => editor.handleDataChanges(blockId, value)}
                                     data={block.data}
+                                    registerRef={(id, el) => {
+                                        editor.registerRef(id, el)
+                                    }}
                                 />
 
                                 <Trash className="opacity-0 cursor-pointer group-hover:opacity-55" size={16} onClick={()=> editor.deleteBlock(block.id)}/>

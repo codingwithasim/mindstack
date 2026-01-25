@@ -5,19 +5,20 @@ import Editable from "@/components/ui/editable";
 import { FormEvent, HTMLAttributes, RefObject, useEffect, useRef, useState } from "react";
 
 type TextBlockProps = {
-    id: number
+    id: string
     order: string
     data: { text: string }
     parentBlockId?: number
-    onEnter?: (currentBlock: number, cursorPos: number) => void
-    onChange?: (id: number, value: string) => void
+    onEnter?: (currentBlock: string, cursorPos: number) => void
+    onChange?: (id: string, value: string) => void
     onFocus?: () => void
-    onBackspace?: (id: number, cursorPos: number) => void
+    onBackspace?: (id: string, cursorPos: number) => void
     focus?: boolean
+    registerRef?: (id: string, el: HTMLDivElement) => void
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-export default function TextBlock({ id, data, onChange, onEnter, focus = false, onFocus, onBackspace, ...props }: TextBlockProps) {
+export default function TextBlock({ id, data, onChange, onEnter, focus = false, onFocus, registerRef, onBackspace, ...props }: TextBlockProps) {
 
 
     const saveChanges = (e: FormEvent) => {
@@ -46,6 +47,9 @@ export default function TextBlock({ id, data, onChange, onEnter, focus = false, 
             onChange={value => { if (onChange) onChange(id, value.toString()) }}
             onBlur={saveChanges}
             requestFocus={focus}
+            registerRef={(el) => {
+                if(registerRef) registerRef(id, el)
+            }}
             onKeyDown={e => {
                 if (e.key === "Enter") {
                     e.preventDefault()
