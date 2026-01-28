@@ -18,5 +18,11 @@ export async function POST(request: Request){
         updatedAt: new Date()
     })
 
-    return NextResponse.json(newPage)
+    return NextResponse.json({
+        id: newPage.lastInsertRowid,
+        parentPageId: null,
+        title: body.title,
+        updatedAt: new Date(),
+        createdAt: new Date()
+    })
 }

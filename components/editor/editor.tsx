@@ -5,7 +5,8 @@ import { useEffect, useState } from "react"
 import TextBlock from "./blocks/textblock"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
-import { Trash } from "lucide-react"
+import { Plus, Trash } from "lucide-react"
+import { Button } from "../ui/button"
 
 type EditorProps = {
     params: { id: number }
@@ -20,12 +21,17 @@ export default function Editor({ params }: EditorProps) {
         document.addEventListener("keydown", handler)
 
         return () => document.removeEventListener("keydown", handler)
-    }, [])
+    }, [editor.blocks])
 
     return (
         <div className="w-screen">
             <header className="pt-30 pb-4 max-w-[1024px] m-auto">
-                <h1 className={cn("text-3xl font-bold text-zinc-300", editor.title.length && "text-black")}>{editor.title.length ? editor.title : "New page"}</h1>
+                <Editable
+                    tag="h1"
+                    onBlur={e => editor.renamePageAPI(e.currentTarget.textContent)  }
+                    value={editor.title}
+                    requestFocus={editor.title.length == 0}
+                    className={cn("text-3xl font-bold text-zinc-300", editor.title.length && "text-black")}/>
             </header>
             <main
                 className="max-w-[1024px] h-full m-auto">
