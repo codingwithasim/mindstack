@@ -1,12 +1,13 @@
 "use client"
 
 import Block from "@/components/editor/block";
+import { BlockType } from "@/components/editor/types";
 import { useEffect, useRef, useState } from "react";
 
-type Block = {
+export type Block = {
     id: string
     parentBlockId: number | null
-    type: string
+    type: BlockType
     order: string
     data: { text: string }
     createdAt: number
@@ -45,6 +46,9 @@ export default function useEditor(pageId: number) {
                                 data: JSON.parse(b.data)
                             }
                         }))
+
+                        console.log(data);
+                        
                     }
                 }
                 )
@@ -71,8 +75,10 @@ export default function useEditor(pageId: number) {
     
         const previous: Block = blocks[idx]
         const next: Block = blocks[idx + 1]
+        const isHeading = previous.type === "heading1" || previous.type === "heading2" || previous.type === "heading3"
 
         cursorPos = Math.max(0, Math.min(cursorPos, previous.data.text.length))
+
 
         //Calculate new order for block
         const orderBefore = parseFloat(previous.order)
@@ -81,15 +87,19 @@ export default function useEditor(pageId: number) {
 
         return [
             ...blocks.slice(0, idx),
+            //Previous block
             {
                 ...previous,
                 data: {text: previous.data.text.slice(0, cursorPos)},
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
+                type: cursorPos === 0 ? "text" : previous.type
             },
+
+            //New block
             {
                 id: crypto.randomUUID(),
                 parentBlockId: null,
-                type: "text",
+                type: isHeading && cursorPos === 0 ? previous.type : "text",
                 order: newOrder,
                 data: {
                     text: previous.data.text.slice(cursorPos)
@@ -145,6 +155,8 @@ export default function useEditor(pageId: number) {
 
     const updateAPI = async (blockId: string, patch: {type?: string, blockOrder?: string, data: object}) => {
         
+        console.log(patch);
+
         if(!patch || Object.entries(patch).length === 0){
             throw new Error("No data was given to update")
         }
@@ -313,14 +325,17 @@ export default function useEditor(pageId: number) {
         try{
             await createBlockAPI(pageId, {
                 id: newBlocks[index + 1].id,
-                type: "text",
+                type: newBlocks[index + 1].type,
                 order: newOrder,
                 data: { text: cursorAtEnd ? "" : afterText}
             })
 
             //Edits the previous block if cursorAtEnd is false
+            const type = newBlocks[index].type
+            console.log(type);
+            
             if (!cursorAtEnd) {
-                await updateAPI(blockId, { data: { text: beforeText}})
+                await updateAPI(blockId, { data: { text: beforeText}, type})
             }
         }catch(err){
             console.log("Failed to split block", err)
@@ -345,12 +360,15 @@ export default function useEditor(pageId: number) {
             }
     }
 
-    const handleDataChanges = (blockId: string, value: string) => {
-        setBlocks(prev => prev.map(block => {
-            if (block.id === blockId) {
-                return { ...block, data: { text: value } }
+    const handleDataChanges = (block: Block) => {
+        setBlocks(prev => prev.map(b => {
+            if (b.id === block.id) {
+                return { 
+                    ...b,
+                    type: block.type,
+                    data: { text: block.data.text } }
             }
-            return block
+            return b
         }))
     }
 
@@ -361,7 +379,6 @@ export default function useEditor(pageId: number) {
         const idx = blocks.findIndex(b => b.id === blockId)
 
         if (idx <= 0) return
-
 
         setBlocks(prev => {
             const updates: Block[] = [
@@ -409,6 +426,23 @@ export default function useEditor(pageId: number) {
         })
     }
 
+    async function createFirstBlock() {
+        const block: Block = {
+            id: crypto.randomUUID(),
+            type: "text",
+            data: {text: ""},
+            order: "1.00000",
+            parentBlockId: null,
+            updatedAt: Date.now(),
+            createdAt: Date.now()
+        }
+
+        setBlocks([block])
+        setFocusedIndex(0)
+
+        await createBlockAPI(pageId, block)
+    }
+
     return {
         title,
         blocks,
@@ -420,7 +454,8 @@ export default function useEditor(pageId: number) {
         handleDataChanges,
         handleBackspace,
         registerRef,
-        renamePageAPI
+        renamePageAPI,
+        createFirstBlock
     }
 }
 

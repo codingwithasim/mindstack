@@ -110,7 +110,7 @@ export default function AppSideBar(){
                     
                     <SidebarMenu>
                         {
-                            pages.slice(0, 5).map(page => {
+                            pages.slice(0, 50).map(page => {
                                 return (
                                     <SidebarMenuItem key={page.id}>
                                         <SidebarMenuButton asChild>

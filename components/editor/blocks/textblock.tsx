@@ -3,6 +3,7 @@
 
 import Editable from "@/components/ui/editable";
 import { FormEvent, HTMLAttributes, RefObject, useEffect, useRef, useState } from "react";
+import { Block } from "../types";
 
 type TextBlockProps = {
     id: string
@@ -10,15 +11,16 @@ type TextBlockProps = {
     data: { text: string }
     parentBlockId?: number
     onEnter?: (currentBlock: string, cursorPos: number) => void
-    onChange?: (id: string, value: string) => void
+    onChange?: (block: Block) => void
     onFocus?: () => void
     onBackspace?: (id: string, cursorPos: number) => void
     focus?: boolean
+    block: Block
     registerRef?: (id: string, el: HTMLDivElement) => void
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-export default function TextBlock({ id, data, onChange, onEnter, focus = false, onFocus, registerRef, onBackspace, ...props }: TextBlockProps) {
+export default function TextBlock({ id, data, onChange, onEnter, block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextBlockProps) {
 
 
     const saveChanges = (e: FormEvent) => {
@@ -44,9 +46,13 @@ export default function TextBlock({ id, data, onChange, onEnter, focus = false, 
         <Editable
             value={data.text}
             onClick={() => { if (onFocus) onFocus() }}
-            onChange={value => { if (onChange) onChange(id, value.toString()) }}
+            onChange={value => { if (onChange) onChange({
+                ...block,
+                data: {text: value.toString()}
+            })}}
             onBlur={saveChanges}
             requestFocus={focus}
+            className="w-full text-zinc-800"
             registerRef={(el) => {
                 if(registerRef) registerRef(id, el)
             }}
@@ -64,10 +70,6 @@ export default function TextBlock({ id, data, onChange, onEnter, focus = false, 
                 if(e.key === "Backspace"){
                     if(onBackspace) onBackspace(id, window.getSelection()?.anchorOffset ?? -1)
                 }
-
-                // if (e.key === "Backspace" && data.text.length == 0) {
-                //     if (onBackspace) onBackspace(id)
-                // }
             }}
             {...rest}
         />

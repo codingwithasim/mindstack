@@ -5,8 +5,8 @@ import { useEffect, useState } from "react"
 import TextBlock from "./blocks/textblock"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
-import { Plus, Trash } from "lucide-react"
-import { Button } from "../ui/button"
+import { Trash } from "lucide-react"
+import BlockRenderor from "./renderor"
 
 type EditorProps = {
     params: { id: number }
@@ -25,13 +25,18 @@ export default function Editor({ params }: EditorProps) {
 
     return (
         <div className="w-screen">
-            <header className="pt-30 pb-4 max-w-[1024px] m-auto">
+            <header className="pt-30 pb-4 pl-6 max-w-[1024px] m-auto">
                 <Editable
                     tag="h1"
                     onBlur={e => editor.renamePageAPI(e.currentTarget.textContent)  }
                     value={editor.title}
                     requestFocus={editor.title.length == 0}
-                    className={cn("text-3xl font-bold text-zinc-300", editor.title.length && "text-black")}/>
+                    onKeyDown={e => {
+                        if(e.key === "Enter"){
+                            editor.createFirstBlock()
+                        }
+                    }}
+                    className={cn("text-3xl font-bold", editor.title.length && "text-black")}/>
             </header>
             <main
                 className="max-w-[1024px] h-full m-auto">
@@ -41,16 +46,17 @@ export default function Editor({ params }: EditorProps) {
 
                         return (
                             <div className="flex group" key={idx}>
-                                <TextBlock
+                                <BlockRenderor
                                     key={block.id}
                                     id={block.id}
+                                    block={block}
                                     order={block.order}
+                                    type={block.type}
                                     focus={idx === editor.currentIndex}
                                     onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
                                     onFocus={() => editor.setIndex(idx)}
                                     onBackspace={editor.handleBackspace}
-                                    className="flex-1"
-                                    onChange={(blockId, value) => editor.handleDataChanges(blockId, value)}
+                                    onChange={(block) => editor.handleDataChanges(block)}
                                     data={block.data}
                                     registerRef={(id, el) => {
                                         editor.registerRef(id, el)

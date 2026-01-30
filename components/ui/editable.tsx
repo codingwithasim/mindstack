@@ -57,7 +57,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", ta
     
     return (
         <Tag
-            className={cn(className)}
+            className={cn("py-1 outline-none", className)}
             contentEditable
             tabIndex={0}
             aria-multiline="true"
