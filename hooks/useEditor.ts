@@ -85,12 +85,22 @@ export default function useEditor(pageId: number) {
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
         const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
 
+        let newBlockData: Partial<{
+            text: string
+            checked: boolean
+        }> = {}
+
+        newBlockData.text = previous.data.text.slice(cursorPos)
+
+        if(previous.type === "check_list"){
+            newBlockData.checked = false
+        }
         return [
             ...blocks.slice(0, idx),
             //Previous block
             {
                 ...previous,
-                data: {text: previous.data.text.slice(0, cursorPos)},
+                data: {...previous.data, text: previous.data.text.slice(0, cursorPos)},
                 updatedAt: Date.now(),
                 type: cursorPos === 0 ? "text" : previous.type
             },
@@ -99,11 +109,9 @@ export default function useEditor(pageId: number) {
             {
                 id: crypto.randomUUID(),
                 parentBlockId: null,
-                type: isHeading && cursorPos === 0 ? previous.type : "text",
+                type: isHeading && cursorPos === 0 || ["check_list", "bullet_list", "ordered_list"].includes(previous.type) ? previous.type : "text",
                 order: newOrder,
-                data: {
-                    text: previous.data.text.slice(cursorPos)
-                },
+                data: newBlockData,
                 createdAt: Date.now(),
                 updatedAt: Date.now()
             },
@@ -153,10 +161,8 @@ export default function useEditor(pageId: number) {
         return await res.json()
     }
 
-    const updateAPI = async (blockId: string, patch: {type?: string, blockOrder?: string, data: object}) => {
+    const updateAPI = async (blockId: string, patch: {type?: string, blockOrder?: string, data?: object}) => {
         
-        console.log(patch);
-
         if(!patch || Object.entries(patch).length === 0){
             throw new Error("No data was given to update")
         }
@@ -366,7 +372,8 @@ export default function useEditor(pageId: number) {
                 return { 
                     ...b,
                     type: block.type,
-                    data: { text: block.data.text } }
+                    data: block.data 
+                }
             }
             return b
         }))
@@ -377,6 +384,17 @@ export default function useEditor(pageId: number) {
         if (cursorPos) return
 
         const idx = blocks.findIndex(b => b.id === blockId)
+
+        if(["bullet_list", "ordered_list", "check_list", "quote"].includes(blocks[idx].type)){
+            if(cursorPos === 0){
+                handleDataChanges({
+                    ...blocks[idx],
+                    type: "text"
+                })
+                await updateAPI(blockId, {type: "text"})
+                return;
+            }
+        }
 
         if (idx <= 0) return
 
@@ -443,6 +461,18 @@ export default function useEditor(pageId: number) {
         await createBlockAPI(pageId, block)
     }
 
+    const getNumberedListIndex = (blocks: Block[], idx: number) => {
+        let count = 1;
+
+        if(blocks[idx].type !== "ordered_list") return 0
+
+        for(let i = idx - 1; i >= 0; i--){
+            if(blocks[i].type !== "ordered_list") break
+            count++
+        }
+        return count
+    }
+
     return {
         title,
         blocks,
@@ -455,7 +485,8 @@ export default function useEditor(pageId: number) {
         handleBackspace,
         registerRef,
         renamePageAPI,
-        createFirstBlock
+        createFirstBlock,
+        getNumberedListIndex
     }
 }
 

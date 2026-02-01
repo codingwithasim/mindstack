@@ -40,9 +40,12 @@ export default function Editor({ params }: EditorProps) {
             </header>
             <main
                 className="max-w-[1024px] h-full m-auto">
-
                 {
                     editor.blocks.map((block, idx) => {
+
+                        const listIndex = block.type === "ordered_list" ?
+                            editor.getNumberedListIndex(editor.blocks, idx) :
+                            undefined
 
                         return (
                             <div className="flex group" key={idx}>
@@ -52,6 +55,7 @@ export default function Editor({ params }: EditorProps) {
                                     block={block}
                                     order={block.order}
                                     type={block.type}
+                                    listIndex={listIndex}
                                     focus={idx === editor.currentIndex}
                                     onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
                                     onFocus={() => editor.setIndex(idx)}

@@ -3,12 +3,12 @@ export type Block = {
     parentBlockId: number | null
     type: BlockType
     order: string
-    data: { text: string }
+    data: { text: string, checked?: boolean }
     createdAt: number
     updatedAt: number
 }
 
-export type BlockType = "text" | "heading1" | "heading2" | "heading3"
+export type BlockType = "quote" | "text" | "heading1" | "heading2" | "heading3" | "ordered_list" | "bullet_list" | "check_list"
 
 export type BlockComponentProps = {
     id: string
@@ -16,6 +16,7 @@ export type BlockComponentProps = {
     block: Block
     focus: boolean
     type: string
+    listIndex?: number
     onEnter: (blockId: string, cursorPos: number) => void
     onBackspace: (blockId: string, cursorPos: number) => void
     onFocus: () => void

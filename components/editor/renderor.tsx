@@ -1,9 +1,11 @@
-import { ChevronRight, GripVertical, Heading1, Heading2, Heading3, LucideIcon, RotateCwSquare, Type } from "lucide-react";
+import { Check, ChevronRight, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Quote, RotateCwSquare, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { ReactNode } from "react";
+import QuoteBlock from "./blocks/quoteblock";
+import ListBlock from "./blocks/listblock";
 
 function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSelect?: (type: BlockType)=> void}) {
     
@@ -31,6 +33,26 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
             icon: Heading3,
             label: "Headgin 3",
             value: "heading3"
+        },
+        {
+            icon: Quote,
+            label: "Quote",
+            value: "quote"
+        },
+        {
+            icon: ListIcon,
+            label: "Bullet List",
+            value: "bullet_list"
+        },
+        {
+            icon: ListOrdered,
+            label: "Ordered List",
+            value: "ordered_list"
+        },
+        {
+            icon: ListTodo,
+            label: "Todo List",
+            value: "check_list"
         }
     ]
     
@@ -56,7 +78,7 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
                             </DropdownMenuSubTrigger>
 
                             <DropdownMenuPortal>
-                                <DropdownMenuSubContent className="w-40">
+                                <DropdownMenuSubContent className="w-50">
                                     {
                                         types.map((type, idx) => {
                                             return (
@@ -102,18 +124,19 @@ export default function BlockRenderor(props: BlockComponentProps) {
             }).then(response => {
                 response.json().then(result => {
                     console.log("✅ Type changed.");
-
                 })
             })
         }
     }
+
+    const {listIndex, ...rest} = props
 
     switch (type) {
         case "text":
             return (
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
-                    <TextBlock {...props} />
+                    <TextBlock {...rest} />
                 </BlockWrapper>
             )
 
@@ -124,7 +147,39 @@ export default function BlockRenderor(props: BlockComponentProps) {
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
                     <HeadingBlock
-                        level={Number(type.at(-1))} {...props} />
+                        level={Number(type.at(-1))} {...rest} />
+                </BlockWrapper>
+            )
+        case "quote":
+            return (
+                <BlockWrapper
+                    onTypeSelect={handleBlockTypeChange}>
+                    <QuoteBlock {...rest} />
+                </BlockWrapper>
+            )
+        case "ordered_list":
+            return (
+                <BlockWrapper
+                    onTypeSelect={handleBlockTypeChange}>
+                    <ListBlock
+                        index={listIndex}
+                        listType="ordered" {...rest} />
+                </BlockWrapper>
+            )
+        case "bullet_list":
+            return (
+                <BlockWrapper
+                    onTypeSelect={handleBlockTypeChange}>
+                    <ListBlock
+                        listType="unordered" {...rest} />
+                </BlockWrapper>
+            )
+        case "check_list":
+            return (
+                <BlockWrapper
+                    onTypeSelect={handleBlockTypeChange}>
+                    <ListBlock
+                        listType="todo" {...rest} />
                 </BlockWrapper>
             )
 

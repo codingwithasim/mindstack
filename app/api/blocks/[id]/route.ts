@@ -81,6 +81,8 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
     if(payload.type) blockUpdate.type = payload.type
     if(payload.blockOrder) blockUpdate.order = Number(payload.blockOrder).toFixed(5)
     
+        console.log(blockUpdate);
+        
 
     if(Object.keys(blockUpdate).length > 0){
         blockUpdate.updatedAt = new Date()

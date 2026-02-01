@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils"
 import { FormEvent, HTMLAttributes, useEffect, useRef, useState } from "react"
 
-type Tag = "div" | "h1" | "h2" | "h3" | "h4" | "h5"
+
 type EditableProps = {
     value?: string
     defaultValue?: string
@@ -11,7 +11,7 @@ type EditableProps = {
     className?: string
     requestFocus?: boolean
     registerRef?: (el: HTMLDivElement) => void
-    tag?: Tag
+    tag?: string
 } & HTMLAttributes<HTMLDivElement>
 
 export default function Editable({ value: controlledValue, defaultValue = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps) {
@@ -28,7 +28,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", ta
         if (node.textContent !== nextValue) {
             node.textContent = nextValue
         }
-    }, [value])
+    }, [value, tag])
 
     useEffect(()=> {
         if(!divRef.current) return
