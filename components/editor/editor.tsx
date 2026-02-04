@@ -39,10 +39,9 @@ export default function Editor({ params }: EditorProps) {
                     className={cn("text-3xl font-bold", editor.title.length && "text-black")}/>
             </header>
             <main
-                className="max-w-[1024px] h-full m-auto">
+                className="max-w-[1024px] h-full m-auto select-text">
                 {
                     editor.blocks.map((block, idx) => {
-
                         const listIndex = block.type === "ordered_list" ?
                             editor.getNumberedListIndex(editor.blocks, idx) :
                             undefined

@@ -1,8 +1,8 @@
-import { Check, ChevronRight, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Quote, RotateCwSquare, Type } from "lucide-react";
+import { Check, ChevronRight, Clipboard, Copy, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { ReactNode } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
@@ -95,6 +95,23 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
                                 </DropdownMenuSubContent>
                             </DropdownMenuPortal>
                         </DropdownMenuSub>
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator/>
+
+                    <DropdownMenuGroup>
+                        <DropdownMenuItem>
+                            <Copy/>
+                            Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <Clipboard/>
+                            Copy to clipboard
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                            <Trash/>
+                            Delete
+                        </DropdownMenuItem>
                     </DropdownMenuGroup>
                 </DropdownMenuContent>
             </DropdownMenu>

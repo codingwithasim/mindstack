@@ -1,20 +1,21 @@
 "use client"
 
-import { File, FileText, Home, LayoutDashboard, Pencil, PenLine, Plus, Search, Settings, Trash } from "lucide-react"
+import { File, FileText, Home, LayoutDashboard, MoreVertical, Pencil, PenLine, Plus, Search, Settings, Trash } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "./ui/sidebar"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "./ui/button"
 import { navigate } from "next/dist/client/components/segment-cache/navigation"
 import { useRouter } from "next/navigation"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 
-export default function AppSideBar(){
+export default function AppSideBar() {
 
     const [pages, setPages] = useState<any[]>([])
 
     const router = useRouter()
 
-    useEffect(()=> {
+    useEffect(() => {
         fetch("/api/pages").then(response => {
             response.json().then(pages => {
                 setPages(pages)
@@ -37,7 +38,7 @@ export default function AppSideBar(){
         ])
 
         // TODO: switch pages to client-generated IDs for optimistic routing
-        try{
+        try {
             const res = await fetch("/api/pages", {
                 method: "POST",
                 body: JSON.stringify({
@@ -45,7 +46,7 @@ export default function AppSideBar(){
                 })
             })
 
-            if(!res.ok){
+            if (!res.ok) {
                 setPages(prev => prev.filter(p => p.id !== tempId))
                 throw new Error("Failed to create page")
             }
@@ -53,29 +54,52 @@ export default function AppSideBar(){
             const newPage = await res.json()
 
             setPages(prev => prev.map(p => {
-                if(p.id === tempId){
+                if (p.id === tempId) {
                     return {
                         ...p, id: newPage.id
                     }
                 }
                 return p
             }))
-            
+
             router.push("/pages/" + newPage.id)
 
-        }catch(err){
+        } catch (err) {
             console.log(err)
         }
+    }
+
+    const handleDeletePage = async (pageId: number) => {
+        if (!pageId) return
+
+        setPages(prev => prev.filter(page => page.id !== pageId))
+
+        try {
+            const res = await fetch("/api/pages/" + pageId, {
+                method: "DELETE"
+            })
+
+            if (!res.ok) {
+                throw new Error("Failed to delete page")
+            }
+
+
+
+            router.push("/")
+        } catch (err) {
+            console.log(err)
+        }
+
     }
 
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
                 <SidebarMenuButton size={"lg"} className="bg-gray-100">
-                        <div className="bg-indigo-700 text-white size-8 aspect-square rounded-lg grid place-items-center">
-                            <PenLine size={16}/>
-                        </div>
-                        <span className="font-medium">Mindstack</span>
+                    <div className="bg-indigo-700 text-white size-8 aspect-square rounded-lg grid place-items-center">
+                        <PenLine size={16} />
+                    </div>
+                    <span className="font-medium">Mindstack</span>
                 </SidebarMenuButton>
             </SidebarHeader>
 
@@ -84,13 +108,13 @@ export default function AppSideBar(){
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton>
-                                <Search/> Search
+                                <Search /> Search
                             </SidebarMenuButton>
                         </SidebarMenuItem>
-                        
+
                         <SidebarMenuItem>
                             <SidebarMenuButton>
-                                <Home/> Home
+                                <Home /> Home
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>
@@ -104,20 +128,37 @@ export default function AppSideBar(){
                             size={"icon-xs"}
                             className="ml-auto hover:bg-gray-200"
                             onClick={handlePageCreation}>
-                            <Plus color="#121212"/>
+                            <Plus color="#121212" />
                         </Button>
                     </SidebarGroupLabel>
-                    
+
                     <SidebarMenu>
                         {
                             pages.slice(0, 50).map(page => {
                                 return (
-                                    <SidebarMenuItem key={page.id}>
+                                    <SidebarMenuItem key={page.id} >
                                         <SidebarMenuButton asChild>
-                                            <Link href={"/pages/" + page.id}>
-                                                <FileText/> {page.title ?? "New page"}
+                                            <Link
+                                                className="text-gray-700 truncate group/page"
+                                                href={"/pages/" + page.id}>
+                                                <FileText /> {page.title ?? "New page"}
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant={"secondary"}
+                                                            size={"icon-x"}
+                                                            className="bg-transparent hover:bg-gray-200 ml-auto invisible group-hover/page:visible transition-none">
+                                                            <MoreVertical/>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="w-50">
+                                                        <DropdownMenuItem onClick={() => handleDeletePage(page.id)}>
+                                                            <Trash />
+                                                            Delete page
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </Link>
-                                            
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )
@@ -126,19 +167,19 @@ export default function AppSideBar(){
                     </SidebarMenu>
                 </SidebarGroup>
 
-                <SidebarSeparator/>
-                
+                <SidebarSeparator />
+
                 <SidebarGroup>
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SidebarMenuButton>
-                                <Settings/> Settings
+                                <Settings /> Settings
                             </SidebarMenuButton>
                         </SidebarMenuItem>
 
                         <SidebarMenuItem>
                             <SidebarMenuButton>
-                                <Trash/> Bin
+                                <Trash /> Bin
                             </SidebarMenuButton>
                         </SidebarMenuItem>
                     </SidebarMenu>

@@ -102,7 +102,7 @@ export default function useEditor(pageId: number) {
                 ...previous,
                 data: {...previous.data, text: previous.data.text.slice(0, cursorPos)},
                 updatedAt: Date.now(),
-                type: cursorPos === 0 ? "text" : previous.type
+                type: cursorPos === 0 && previous.type.startsWith("heading") ? "text"  : previous.type
             },
 
             //New block
@@ -117,6 +117,15 @@ export default function useEditor(pageId: number) {
             },
             ...blocks.slice(idx + 1)
         ]
+    }
+
+    const updateBlock = (blockId: string, blockData: Partial<Omit<Block, "id">>) => {
+        setBlocks(prev => prev.map(b => {
+            if(b.id === blockId){
+                return {...b, ...blockData}
+            }
+            return b
+        }))
     }
 
     const mergeBlock = (blocks: Block[], blockId: string, toId: string) => {
@@ -311,6 +320,11 @@ export default function useEditor(pageId: number) {
         const previous = blocks[index]
         const next = blocks[index + 1]
 
+        if(previous.type.endsWith("list") && !previous.data.text.length){
+            updateBlock(blockId, {type: "text"})
+            return
+        }
+
         //Calculate new order for block
         const orderBefore = parseFloat(previous.order)
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
@@ -366,17 +380,53 @@ export default function useEditor(pageId: number) {
             }
     }
 
-    const handleDataChanges = (block: Block) => {
+    const handleDataChanges = async (block: Block) => {
+        const value: string = block.data.text
+
+        const shortcuts: Map<String, BlockType> = new Map()
+        shortcuts.set("1.", "ordered_list")
+        shortcuts.set("-", "bullet_list")
+        shortcuts.set("?", "check_list")
+        shortcuts.set("#", "heading1")
+        shortcuts.set("##", "heading2")
+        shortcuts.set("###", "heading3")
+
+
+        const data: Partial<{
+            type: BlockType
+            data: {
+                text: string
+                checked?: boolean
+            }
+        }> = {
+            data: block.data,
+            type: block.type
+        }
+
+        const trimmed = value.trimEnd()
+
+        if(shortcuts.has(trimmed) && trimmed !== value){
+            
+            if(data.data){
+                data.data.text = ""
+            }
+            data.type = shortcuts.get(value.trimEnd())
+        }
+
         setBlocks(prev => prev.map(b => {
             if (b.id === block.id) {
                 return { 
                     ...b,
-                    type: block.type,
-                    data: block.data 
+                    ...data
                 }
             }
             return b
         }))
+
+        await updateAPI(block.id, {
+            type: data.type,
+            data: data.data
+        })
     }
 
     const handleBackspace = async (blockId: string, cursorPos: number) => {

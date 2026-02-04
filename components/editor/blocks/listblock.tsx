@@ -38,10 +38,11 @@ export default function ListBlock({listType="ordered", index, ...props}: ListPro
                     listIndex + '.' :
                     listType === "unordered" ?
                     '•':
-                    <Checkbox checked={props.data.checked} onCheckedChange={handleCheckboxChange}/>
+                    <Checkbox checked={props.block.data.checked} onCheckedChange={handleCheckboxChange}/>
                 }
             </div>
             <TextWrapper
+            className={cn("flex-1", listType === "todo" && props.block.data.checked && "line-through text-zinc-500")}
                 {...props}/>
         </div>
     )
