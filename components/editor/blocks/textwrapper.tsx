@@ -32,11 +32,6 @@ export default function TextWrapper({ id, data, onChange, onEnter, tag = "div", 
             body: JSON.stringify({
                 data: { text: value }
             })
-        }).then(response => {
-            response.json().then(result => {
-                console.log("✅ Saving completed.");
-
-            })
         })
     }
 

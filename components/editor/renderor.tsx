@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Clipboard, Copy, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
+import { Check, ChevronRight, Clipboard, Copy, DivideCircle, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
@@ -6,6 +6,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { ReactNode } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
+import { Separator } from "../ui/separator";
 
 function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSelect?: (type: BlockType)=> void}) {
     
@@ -53,6 +54,11 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
             icon: ListTodo,
             label: "Todo List",
             value: "check_list"
+        },
+        {
+            icon: Minus,
+            label: "Divider",
+            value: "divider"
         }
     ]
     
@@ -125,8 +131,6 @@ export default function BlockRenderor(props: BlockComponentProps) {
     const { type, id, onChange, block } = props
 
     const handleBlockTypeChange = (type: BlockType) => {
-        console.log(type);
-        
         if(onChange){
             onChange({
                 ...block,
@@ -197,6 +201,13 @@ export default function BlockRenderor(props: BlockComponentProps) {
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         listType="todo" {...rest} />
+                </BlockWrapper>
+            )
+        case "divider":
+            return (
+                <BlockWrapper
+                    onTypeSelect={handleBlockTypeChange}>
+                    <Separator/>
                 </BlockWrapper>
             )
 

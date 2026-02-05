@@ -8,7 +8,9 @@ export type Block = {
     updatedAt: number
 }
 
-export type BlockType = "quote" | "text" | "heading1" | "heading2" | "heading3" | "ordered_list" | "bullet_list" | "check_list"
+export type BlockType = "quote" | "text" | "heading1" | "heading2" | "heading3" | "ordered_list" | "bullet_list" | 
+    "check_list" | "divider"
+    
 
 export type BlockComponentProps = {
     id: string

@@ -47,8 +47,6 @@ export default function useEditor(pageId: number) {
                             }
                         }))
 
-                        console.log(data);
-                        
                     }
                 }
                 )
@@ -68,11 +66,11 @@ export default function useEditor(pageId: number) {
     }
 
     const splitBlock = (blocks: Block[], blockId: string, cursorPos: number): Block[] => {
-        
+
         const idx: number = blocks.findIndex(b => b.id === blockId)
 
-        if(idx === -1) return blocks
-    
+        if (idx === -1) return blocks
+
         const previous: Block = blocks[idx]
         const next: Block = blocks[idx + 1]
         const isHeading = previous.type === "heading1" || previous.type === "heading2" || previous.type === "heading3"
@@ -92,7 +90,7 @@ export default function useEditor(pageId: number) {
 
         newBlockData.text = previous.data.text.slice(cursorPos)
 
-        if(previous.type === "check_list"){
+        if (previous.type === "check_list") {
             newBlockData.checked = false
         }
         return [
@@ -100,9 +98,9 @@ export default function useEditor(pageId: number) {
             //Previous block
             {
                 ...previous,
-                data: {...previous.data, text: previous.data.text.slice(0, cursorPos)},
+                data: { ...previous.data, text: previous.data.text.slice(0, cursorPos) },
                 updatedAt: Date.now(),
-                type: cursorPos === 0 && previous.type.startsWith("heading") ? "text"  : previous.type
+                type: cursorPos === 0 && previous.type.startsWith("heading") ? "text" : previous.type
             },
 
             //New block
@@ -121,8 +119,8 @@ export default function useEditor(pageId: number) {
 
     const updateBlock = (blockId: string, blockData: Partial<Omit<Block, "id">>) => {
         setBlocks(prev => prev.map(b => {
-            if(b.id === blockId){
-                return {...b, ...blockData}
+            if (b.id === blockId) {
+                return { ...b, ...blockData }
             }
             return b
         }))
@@ -163,19 +161,19 @@ export default function useEditor(pageId: number) {
             }
         })
 
-        if(!res.ok){
+        if (!res.ok) {
             throw new Error("Failed to delete the block")
         }
 
         return await res.json()
     }
 
-    const updateAPI = async (blockId: string, patch: {type?: string, blockOrder?: string, data?: object}) => {
-        
-        if(!patch || Object.entries(patch).length === 0){
+    const updateAPI = async (blockId: string, patch: { type?: string, blockOrder?: string, data?: object }) => {
+
+        if (!patch || Object.entries(patch).length === 0) {
             throw new Error("No data was given to update")
         }
-        
+
         const res = await fetch(`/api/blocks/${blockId}`, {
             method: "PATCH",
             headers: {
@@ -184,7 +182,7 @@ export default function useEditor(pageId: number) {
             body: JSON.stringify(patch)
         })
 
-        if(!res.ok){
+        if (!res.ok) {
             throw new Error("Failed to update the block")
         }
 
@@ -203,10 +201,10 @@ export default function useEditor(pageId: number) {
     const renamePageAPI = async (title: string) => {
         const res = await fetch(`/api/pages/${pageId}`, {
             method: "PATCH",
-            body: JSON.stringify({title})
+            body: JSON.stringify({ title })
         })
 
-        if(!res.ok){
+        if (!res.ok) {
             throw new Error("Failed to rename the page !");
         }
 
@@ -217,96 +215,119 @@ export default function useEditor(pageId: number) {
 
     const handleArrowNavigation = (e: KeyboardEvent) => {
 
-        if(!blocks || blocks.length === 0) return
+        if (!blocks || blocks.length === 0) return
 
         if (e.key === "ArrowUp") {
-            setFocusedIndex(i =>
-                {
-                    if(i === null || i === 0){
-                        return 0
-                    }
-
-                    const prevIndex = i -1
-                    const el = cursorRef.current.get(blocks[i].id)
-                    
-                    if(!el) return i - 1
-
-                    const sel = window.getSelection()
-
-                    if(!sel) return i - 1
-
-                    const offset = sel.anchorOffset
-
-
-                    focusAt(blocks[prevIndex].id, offset)
-                    return i - 1
+            setFocusedIndex(i => {
+                if (i === null || i === 0) {
+                    return 0
                 }
+
+                let prevIndex: number;
+
+                for(prevIndex = i - 1; prevIndex >= 0; prevIndex--){
+                    if(blocks[prevIndex].type !== "divider") break
+                }
+
+                if(prevIndex === -1) return i
+
+                
+                const el = cursorRef.current.get(blocks[i].id)
+
+                if (!el) return i
+
+                const sel = window.getSelection()
+
+                if (!sel) return prevIndex
+
+                const offset = sel.anchorOffset
+
+                focusAt(blocks[prevIndex].id, offset)
+                return prevIndex
+            }
             )
         }
 
         if (e.key === "ArrowDown") {
-            setFocusedIndex(i =>
-                {
-                    if(i === null){return 0}
-                    if( blocks.length === i + 1) return i
+            setFocusedIndex(i => {
+                if (i === null) { return 0 }
+                if (blocks.length === i + 1) return i
 
-                        const prevIndex = i + 1
-                        const el = cursorRef.current.get(blocks[i].id)
-                        
-                        if(!el) return i + 1
+                let nextIndex : number
 
-                        const sel = window.getSelection()
-
-                        if(!sel) return i + 1
-
-                        const offset = sel.anchorOffset
-
-
-                        focusAt(blocks[prevIndex].id, offset)
-                        return i + 1
+                for(nextIndex = i + 1; nextIndex < blocks.length; nextIndex++){
+                    if(blocks[nextIndex].type !== "divider") break
                 }
+
+                if(nextIndex === blocks.length) return i
+
+                const el = cursorRef.current.get(blocks[i].id)
+
+                if (!el) return nextIndex
+
+                const sel = window.getSelection()
+
+                if (!sel) return nextIndex
+
+                const offset = sel.anchorOffset
+
+                focusAt(blocks[nextIndex].id, offset)
+                return nextIndex
+            }
             )
         }
 
-        if(e.key === "ArrowLeft") {
+        if (e.key === "ArrowLeft") {
             setFocusedIndex(i => {
-                if(i === null || i === 0) return i
+                if (i === null || i === 0) return i
 
                 const sel = window.getSelection()
-                if(!sel) return i     
-                
-                if(sel.anchorOffset !== 0) return i
+                if (!sel) return i
 
-                focusAt(blocks[i - 1].id, blocks[i - 1].data.text.length)
+                if (sel.anchorOffset !== 0) return i
 
-                return i - 1
+                let prevIndex: number
+
+                for(prevIndex = i - 1; prevIndex >= 0; prevIndex--){
+                    if(blocks[prevIndex].type !== "divider") break
+                }
+
+                focusAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
+
+                return prevIndex
             })
-            
+
         }
 
-        if(e.key === "ArrowRight") {
+        if (e.key === "ArrowRight") {
             setFocusedIndex(i => {
-                if(i === null || i === blocks.length - 1) return i
+                if (i === null || i === blocks.length - 1) return i
 
                 const sel = window.getSelection()
-                if(!sel) return i
+                if (!sel) return i
 
                 const current = blocks[i]
 
-                if(!current) return i
-                if(sel.anchorOffset !== current.data.text.length) return i
+                if (!current) return i
+                if (sel.anchorOffset !== current.data.text.length) return i
 
-                focusAt(blocks[i + 1].id, 0)
+                let nextIndex : number
 
-                return i + 1
+                for(nextIndex = i + 1; nextIndex < blocks.length; nextIndex++){
+                    if(blocks[nextIndex].type !== "divider") break
+                }
+
+                focusAt(blocks[nextIndex].id, 0)
+
+                return nextIndex
             })
         }
     }
 
     const registerRef = (id: string, el: HTMLDivElement) => {
-        if(el){
+        if (el) {
             cursorRef.current.set(id, el)
-        }else{
+        } else {
             cursorRef.current.delete(id)
         }
     }
@@ -315,13 +336,13 @@ export default function useEditor(pageId: number) {
 
         const index = blocks.findIndex(b => b.id === blockId)
 
-        if(index === -1) return
+        if (index === -1) return
 
         const previous = blocks[index]
         const next = blocks[index + 1]
 
-        if(previous.type.endsWith("list") && !previous.data.text.length){
-            updateBlock(blockId, {type: "text"})
+        if (previous.type.endsWith("list") && !previous.data.text.length) {
+            updateBlock(blockId, { type: "text" })
             return
         }
 
@@ -342,42 +363,42 @@ export default function useEditor(pageId: number) {
         setFocusedIndex(index + 1)
 
         //Call API
-        try{
+        try {
             await createBlockAPI(pageId, {
                 id: newBlocks[index + 1].id,
                 type: newBlocks[index + 1].type,
                 order: newOrder,
-                data: { text: cursorAtEnd ? "" : afterText}
+                data: { text: cursorAtEnd ? "" : afterText }
             })
 
             //Edits the previous block if cursorAtEnd is false
             const type = newBlocks[index].type
             console.log(type);
-            
+
             if (!cursorAtEnd) {
-                await updateAPI(blockId, { data: { text: beforeText}, type})
+                await updateAPI(blockId, { data: { text: beforeText }, type })
             }
-        }catch(err){
+        } catch (err) {
             console.log("Failed to split block", err)
         }
-        
+
     }
 
     const handleDeleteBlock = async (blockId: string) => {
         if (focusedIndex == 0) return;
 
-            //Filter out blocks excluding blockId
-            setBlocks(prev => deleteBlock(prev, blockId))
+        //Filter out blocks excluding blockId
+        setBlocks(prev => deleteBlock(prev, blockId))
 
-            if (focusedIndex) {
-                setFocusedIndex(focusedIndex - 1)
-            }
+        if (focusedIndex) {
+            setFocusedIndex(focusedIndex - 1)
+        }
 
-            try{
-                await deleteBlockAPI(blockId)
-            }catch(err){
-                console.log(err)
-            }
+        try {
+            await deleteBlockAPI(blockId)
+        } catch (err) {
+            console.log(err)
+        }
     }
 
     const handleDataChanges = async (block: Block) => {
@@ -405,9 +426,9 @@ export default function useEditor(pageId: number) {
 
         const trimmed = value.trimEnd()
 
-        if(shortcuts.has(trimmed) && trimmed !== value){
-            
-            if(data.data){
+        if (shortcuts.has(trimmed) && trimmed !== value) {
+
+            if (data.data) {
                 data.data.text = ""
             }
             data.type = shortcuts.get(value.trimEnd())
@@ -415,7 +436,7 @@ export default function useEditor(pageId: number) {
 
         setBlocks(prev => prev.map(b => {
             if (b.id === block.id) {
-                return { 
+                return {
                     ...b,
                     ...data
                 }
@@ -435,37 +456,56 @@ export default function useEditor(pageId: number) {
 
         const idx = blocks.findIndex(b => b.id === blockId)
 
-        if(["bullet_list", "ordered_list", "check_list", "quote"].includes(blocks[idx].type)){
-            if(cursorPos === 0){
+        if (["bullet_list", "ordered_list", "check_list", "quote"].includes(blocks[idx].type)) {
+            if (cursorPos === 0) {
                 handleDataChanges({
                     ...blocks[idx],
                     type: "text"
                 })
-                await updateAPI(blockId, {type: "text"})
+                await updateAPI(blockId, { type: "text" })
                 return;
             }
         }
 
         if (idx <= 0) return
 
+
+        let prevIndex: number;
+
+        for (prevIndex = idx -1; prevIndex >= 0; prevIndex--) {
+            if (blocks[prevIndex].type !== "divider") {
+                break;
+            }
+        }
+
+        if (prevIndex === -1) return
+
         setBlocks(prev => {
+            
+            const prevBlock = prev[prevIndex]
+            const currentBlock = prev[idx]
+
+            const merged: Block = {
+                ...prevBlock,
+                data: {
+                    text: prevBlock.data.text + currentBlock.data.text
+                }
+            }
+
             const updates: Block[] = [
-                ...prev.slice(0, idx - 1),
-                {
-                    ...prev[idx - 1],
-                    data: {
-                        text: prev[idx - 1].data.text + prev[idx].data.text,
-                    },
-                    updatedAt: Date.now()
-                },
-                ...prev.slice(idx + 1)
+                ...prev.slice(0, prevIndex), //Blocks before the merged block
+                merged, //Merged block
+                ...prev.slice(prevIndex + 1, idx), //Blocks after merged block till current block (excluded)
+                ...prev.slice(idx + 1) //Blocks after current block (excluded)
             ]
 
             return updates
         })
 
-        setFocusedIndex(idx - 1)
-        focusAt(blocks[idx - 1].id, blocks[idx-1].data.text.length)
+
+
+        setFocusedIndex(prevIndex)
+        focusAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
 
         await deleteBlockAPI(blockId)
     }
@@ -498,7 +538,7 @@ export default function useEditor(pageId: number) {
         const block: Block = {
             id: crypto.randomUUID(),
             type: "text",
-            data: {text: ""},
+            data: { text: "" },
             order: "1.00000",
             parentBlockId: null,
             updatedAt: Date.now(),
@@ -514,10 +554,10 @@ export default function useEditor(pageId: number) {
     const getNumberedListIndex = (blocks: Block[], idx: number) => {
         let count = 1;
 
-        if(blocks[idx].type !== "ordered_list") return 0
+        if (blocks[idx].type !== "ordered_list") return 0
 
-        for(let i = idx - 1; i >= 0; i--){
-            if(blocks[i].type !== "ordered_list") break
+        for (let i = idx - 1; i >= 0; i--) {
+            if (blocks[i].type !== "ordered_list") break
             count++
         }
         return count
