@@ -12,9 +12,10 @@ type EditableProps = {
     requestFocus?: boolean
     registerRef?: (el: HTMLDivElement) => void
     tag?: string
+    placeholder?: string
 } & HTMLAttributes<HTMLDivElement>
 
-export default function Editable({ value: controlledValue, defaultValue = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps) {
+export default function Editable({ value: controlledValue, defaultValue = "", placeholder = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps) {
     const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
     const divRef = useRef<HTMLDivElement>(null)
     const isControlled = controlledValue !== undefined
@@ -50,17 +51,27 @@ export default function Editable({ value: controlledValue, defaultValue = "", ta
         if (!isControlled) {
             setUncontrolledValue(nextValue)
         }
+
+        if(nextValue === ""){
+            e.currentTarget.innerHTML = ""
+        }
+
         onChange?.(nextValue)
     }
 
     const Tag = tag
+
+    const defaultClasses = "py-1 outline-none  before:absolute before:h-full before:left-0" +
+        "before:top-0 before:pointer-events-none before:text-gray-400 empty:before:content-[attr(data-placeholder)]"
+
     
     return (
         <Tag
-            className={cn("py-1 outline-none", className)}
+            className={cn(defaultClasses ,  className)}
             contentEditable
             tabIndex={0}
             aria-multiline="true"
+            data-placeholder={placeholder}
             role="textbox"
             ref={divRef}
             onInput={handleInput}

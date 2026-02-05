@@ -4,6 +4,7 @@
 import Editable from "@/components/ui/editable";
 import { FormEvent, HTMLAttributes, RefObject, useEffect, useRef, useState } from "react";
 import { Block } from "../types";
+import { cn } from "@/lib/utils";
 
 export type TextWrapperProps = {
     id: string
@@ -17,11 +18,12 @@ export type TextWrapperProps = {
     focus?: boolean
     block: Block
     tag?: string
+    placeholder?: string
     registerRef?: (id: string, el: HTMLDivElement) => void
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-export default function TextWrapper({ id, data, onChange, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
+export default function TextWrapper({ id, data, onChange, placeholder, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
 
     const saveChanges = (e: FormEvent) => {
 
@@ -48,7 +50,8 @@ export default function TextWrapper({ id, data, onChange, onEnter, tag = "div", 
             onBlur={saveChanges}
             requestFocus={focus}
             tag={tag}
-            className="w-full text-zinc-800"
+            placeholder={placeholder}
+            className={cn("w-full text-zinc-800", props.className)}
             registerRef={(el) => {
                 if(registerRef) registerRef(id, el)
             }}

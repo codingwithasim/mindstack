@@ -53,7 +53,23 @@ export default function useEditor(pageId: number) {
             })
     }, [])
 
+    const blocksRef = useRef<boolean>(false);
+
+    
+
     /**========================= Helper functions =========================== */
+
+    function normalizeOrders(blocks: Block[]): Block[] {
+        const sorted = [...blocks].sort(
+            (a, b) => Number(a.order) - Number(b.order)
+        )
+
+        return sorted.map((block, i) => ({
+            ...block,
+            order: (i + 1).toFixed(10)
+        }))
+    }
+
 
     const insertBlock = (blocks: Block[], block: Block) => {
         return [
@@ -79,9 +95,15 @@ export default function useEditor(pageId: number) {
 
 
         //Calculate new order for block
-        const orderBefore = parseFloat(previous.order)
+        const orderBefore = parseFloat(previous.order) || 0
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
-        const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
+        let newOrderNum = ((orderBefore + orderAfter) / 2)
+
+        if (newOrderNum === orderBefore || newOrderNum === orderAfter) {
+            newOrderNum += 0.000001
+        }
+
+        const newOrder = newOrderNum.toFixed(12)
 
         let newBlockData: Partial<{
             text: string
@@ -362,6 +384,9 @@ export default function useEditor(pageId: number) {
         setBlocks(newBlocks)
         setFocusedIndex(index + 1)
 
+        console.log(newBlocks[index + 1]);
+        
+
         //Call API
         try {
             await createBlockAPI(pageId, {
@@ -411,6 +436,7 @@ export default function useEditor(pageId: number) {
         shortcuts.set("#", "heading1")
         shortcuts.set("##", "heading2")
         shortcuts.set("###", "heading3")
+        shortcuts.set("---", "divider")
 
 
         const data: Partial<{
@@ -426,12 +452,18 @@ export default function useEditor(pageId: number) {
 
         const trimmed = value.trimEnd()
 
-        if (shortcuts.has(trimmed) && trimmed !== value) {
+        if (shortcuts.has(trimmed)) {
 
-            if (data.data) {
-                data.data.text = ""
+            if(trimmed === "---"){
+                data.type = "divider"
             }
-            data.type = shortcuts.get(value.trimEnd())
+
+            if(trimmed !== value){
+                if (data.data) {
+                   data.data.text = ""
+                }
+                data.type = shortcuts.get(value.trimEnd())
+            }
         }
 
         setBlocks(prev => prev.map(b => {

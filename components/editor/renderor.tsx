@@ -54,11 +54,6 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
             icon: ListTodo,
             label: "Todo List",
             value: "check_list"
-        },
-        {
-            icon: Minus,
-            label: "Divider",
-            value: "divider"
         }
     ]
     
@@ -168,6 +163,7 @@ export default function BlockRenderor(props: BlockComponentProps) {
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
                     <HeadingBlock
+                        placeholder={"Heading " + Number(type.at(-1))}
                         level={Number(type.at(-1))} {...rest} />
                 </BlockWrapper>
             )
@@ -175,7 +171,9 @@ export default function BlockRenderor(props: BlockComponentProps) {
             return (
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
-                    <QuoteBlock {...rest} />
+                    <QuoteBlock
+                        placeholder="Empty quote"
+                        {...rest} />
                 </BlockWrapper>
             )
         case "ordered_list":
@@ -184,6 +182,7 @@ export default function BlockRenderor(props: BlockComponentProps) {
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         index={listIndex}
+                        placeholder="List"
                         listType="ordered" {...rest} />
                 </BlockWrapper>
             )
@@ -192,6 +191,7 @@ export default function BlockRenderor(props: BlockComponentProps) {
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
+                        placeholder="List"
                         listType="unordered" {...rest} />
                 </BlockWrapper>
             )
@@ -200,6 +200,7 @@ export default function BlockRenderor(props: BlockComponentProps) {
                 <BlockWrapper
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
+                        placeholder="To-do"
                         listType="todo" {...rest} />
                 </BlockWrapper>
             )

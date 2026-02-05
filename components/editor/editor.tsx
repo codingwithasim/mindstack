@@ -57,7 +57,11 @@ export default function Editor({ params }: EditorProps) {
                                     listIndex={listIndex}
                                     focus={idx === editor.currentIndex}
                                     onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
-                                    onFocus={() => editor.setIndex(idx)}
+                                    onFocus={() => {
+                                        editor.setIndex(idx)
+                                        console.log(editor.blocks[idx].order);
+                                        
+                                    }}
                                     onBackspace={editor.handleBackspace}
                                     onChange={(block) => editor.handleDataChanges(block)}
                                     data={block.data}

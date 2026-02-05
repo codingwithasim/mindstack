@@ -52,7 +52,7 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
         )
     }
 
-    if(!(payload.type || payload.order || payload.data)){
+    if(!(payload.type || payload.blockOrder || payload.data)){
         return NextResponse.json(
             {error: "No data provided"}, {status: 400}
         )
@@ -73,16 +73,13 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
     /* ===================== Update blocks table ===================== */
 
     const blockUpdate: Partial<{
-        order: string
+        blockOrder: string
         type: string
         updatedAt: Date
     }> = {}
 
     if(payload.type) blockUpdate.type = payload.type
-    if(payload.blockOrder) blockUpdate.order = Number(payload.blockOrder).toFixed(5)
-    
-        console.log(blockUpdate);
-        
+    if(payload.blockOrder) blockUpdate.blockOrder = Number(payload.blockOrder).toFixed(5)
 
     if(Object.keys(blockUpdate).length > 0){
         blockUpdate.updatedAt = new Date()
