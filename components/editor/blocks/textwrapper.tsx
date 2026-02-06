@@ -23,7 +23,7 @@ export type TextWrapperProps = {
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-export default function TextWrapper({ id, data, onChange, placeholder, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
+export default function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
 
     const saveChanges = (e: FormEvent) => {
 
@@ -32,7 +32,7 @@ export default function TextWrapper({ id, data, onChange, placeholder, onEnter, 
         fetch("/api/blocks/" + id, {
             method: "PATCH",
             body: JSON.stringify({
-                data: { text: value }
+                data: { text: value}
             })
         })
     }
@@ -45,9 +45,14 @@ export default function TextWrapper({ id, data, onChange, placeholder, onEnter, 
             onClick={() => { if (onFocus) onFocus() }}
             onChange={value => { if (onChange) onChange({
                 ...block,
-                data: {text: value.toString()}
+                data: {...block.data, text: value.toString()}
             })}}
-            onBlur={saveChanges}
+            onBlur={() => {
+                if(onChange) onChange({
+                    ...block,
+                    data: {...block.data}
+                })
+            }}
             requestFocus={focus}
             tag={tag}
             placeholder={placeholder}

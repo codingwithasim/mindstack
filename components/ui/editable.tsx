@@ -62,7 +62,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
     const Tag = tag
 
     const defaultClasses = "py-1 outline-none  before:absolute before:h-full before:left-0" +
-        "before:top-0 before:pointer-events-none before:text-gray-400 empty:before:content-[attr(data-placeholder)]"
+        "before:top-0 before:pointer-events-none before:text-zinc-400 empty:before:content-[attr(data-placeholder)]"
 
     
     return (

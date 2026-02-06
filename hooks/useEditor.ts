@@ -426,6 +426,7 @@ export default function useEditor(pageId: number) {
         }
     }
 
+
     const handleDataChanges = async (block: Block) => {
         const value: string = block.data.text
 
