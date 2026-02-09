@@ -1,4 +1,4 @@
-import { Check, ChevronRight, Clipboard, Copy, DivideCircle, GripVertical, Heading1, Heading2, Heading3, List, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
+import { Check, ChevronRight, Clipboard, Copy, DivideCircle, GripVertical, Heading1, Heading2, Heading3, List, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
@@ -7,8 +7,9 @@ import { ReactNode } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
+import ToggleBlock from "./blocks/toggleblock";
 
-function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSelect?: (type: BlockType)=> void}) {
+export function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSelect?: (type: BlockType)=> void}) {
     
     const types: Array<{
         icon: LucideIcon
@@ -54,15 +55,22 @@ function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSe
             icon: ListTodo,
             label: "Todo List",
             value: "check_list"
+        },
+        {
+            icon: ListChevronsDownUpIcon,
+            label: "Section",
+            value: "toggle"
         }
     ]
+
+    const id = crypto.randomUUID()
     
     
     return (
-        <div className="flex group items-center gap-2 flex-1">
+        <div data-row-id={id} className={"flex items-center gap-2 flex-1 group"}>
             <DropdownMenu>
                 <DropdownMenuTrigger>
-                    <div className="group-hover:visible group-focus:visible invisible py-1 rounded-sm cursor-grab text-gray-400 hover:bg-gray-100">
+                    <div className={`group-hover:visible group-focus:visible invisible py-1 rounded-sm cursor-grab text-gray-400 hover:bg-gray-100`}>
                         <GripVertical size={18} />
                     </div>
                 </DropdownMenuTrigger>
@@ -210,6 +218,14 @@ export default function BlockRenderor(props: BlockComponentProps) {
                     onTypeSelect={handleBlockTypeChange}>
                     <Separator/>
                 </BlockWrapper>
+            )
+
+        case "toggle":
+            return (
+                // <BlockWrapper
+                    // onTypeSelect={handleBlockTypeChange}>
+                    <ToggleBlock {...rest}/>
+                // </BlockWrapper>
             )
 
         default:

@@ -1,8 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
-import TextBlock from "./blocks/textblock"
+import { createContext, useEffect, useState } from "react"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
 import { Trash } from "lucide-react"
@@ -12,6 +11,9 @@ type EditorProps = {
     params: { id: number }
 }
 
+
+export const EditorContext = createContext<any>(null)
+
 export default function Editor({ params }: EditorProps) {
 
     const editor = useEditor(params.id)
@@ -19,12 +21,13 @@ export default function Editor({ params }: EditorProps) {
     useEffect(() => {
         const handler = editor.handleArrowNavigation
         document.addEventListener("keydown", handler)
-
+        
         return () => document.removeEventListener("keydown", handler)
     }, [editor.blocks])
 
     return (
-        <div className="w-screen">
+        <EditorContext value={{editor}}>
+            <div className="w-screen">
             <header className="pt-30 pb-4 pl-6 max-w-[1024px] m-auto">
                 <Editable
                     tag="h1"
@@ -43,11 +46,13 @@ export default function Editor({ params }: EditorProps) {
                 {
                     editor.blocks.map((block, idx) => {
                         const listIndex = block.type === "ordered_list" ?
-                            editor.getNumberedListIndex(editor.blocks, idx) :
+                            editor.getNumberedListIndex(editor.blocks, block.id) :
                             undefined
 
+                        if(block.parentBlockId) return null
+
                         return (
-                            <div className="flex group" key={idx}>
+                            <div className="flex" key={idx}>
                                 <BlockRenderor
                                     key={block.id}
                                     id={block.id}
@@ -55,11 +60,12 @@ export default function Editor({ params }: EditorProps) {
                                     order={block.order}
                                     type={block.type}
                                     listIndex={listIndex}
-                                    focus={idx === editor.currentIndex}
+                                    focus={block.id === editor.focusedBlockId}
                                     onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
                                     onFocus={() => {
                                         editor.setIndex(idx)
-                                        console.log(editor.blocks[idx].order);
+                                        editor.setFocusedBlockId(block.id)
+                                        console.log("parent id", block.id);
                                         
                                     }}
                                     onBackspace={editor.handleBackspace}
@@ -77,5 +83,6 @@ export default function Editor({ params }: EditorProps) {
                 }
             </main>
         </div>
+        </EditorContext>
     )
 }

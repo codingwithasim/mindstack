@@ -1,15 +1,19 @@
 export type Block = {
     id: string
-    parentBlockId: number | null
+    parentBlockId: string | null
     type: BlockType
     order: string
-    data: { text: string, checked?: boolean }
+    data: { 
+        text: string
+        checked?: boolean
+        opened?: boolean
+    }
     createdAt: number
     updatedAt: number
 }
 
 export type BlockType = "quote" | "text" | "heading1" | "heading2" | "heading3" | "ordered_list" | "bullet_list" | 
-    "check_list" | "divider"
+    "check_list" | "divider" | "toggle"
     
 
 export type BlockComponentProps = {

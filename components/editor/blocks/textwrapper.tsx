@@ -43,16 +43,12 @@ export default function TextWrapper({ id, onChange, placeholder, onEnter, tag = 
         <Editable
             value={block.data.text}
             onClick={() => { if (onFocus) onFocus() }}
-            onChange={value => { if (onChange) onChange({
+            onChange={value => { 
+                if (onChange) onChange({
                 ...block,
                 data: {...block.data, text: value.toString()}
             })}}
-            onBlur={() => {
-                if(onChange) onChange({
-                    ...block,
-                    data: {...block.data}
-                })
-            }}
+            
             requestFocus={focus}
             tag={tag}
             placeholder={placeholder}
