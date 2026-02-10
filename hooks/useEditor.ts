@@ -611,6 +611,45 @@ export default function useEditor(pageId: number) {
         return count
     }
 
+    const dublicateBlock = async (blockId: string) => {
+        if(!blockId || typeof blockId !== "string") return
+
+        const idx = blocks.findIndex(block => blockId === block.id)
+
+        if(idx === -1) return
+
+        const current: Block = blocks[idx]
+
+        const clientId = crypto.randomUUID()
+
+        const newBlock = {...current, id: clientId}
+
+        const newBlocks = insertBlock(blocks, newBlock)
+
+        setBlocks(newBlocks)
+        setFocusedBlockId(clientId)
+
+        try{
+            await createBlockAPI(pageId, newBlock)
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    const copy = async (blockId: string) => {
+        if(!blockId || typeof blockId !== "string") return
+
+        const idx = blocks.findIndex(block => blockId === block.id)
+
+        if(idx === -1) return
+
+        const current: Block = blocks[idx]
+
+        const textToCopy = current.data.text
+
+        return await navigator.clipboard.writeText(textToCopy)
+    }
+
     return {
         title,
         blocks,
@@ -627,7 +666,9 @@ export default function useEditor(pageId: number) {
         getNumberedListIndex,
         createBlock,
         setFocusedBlockId,
-        focusedBlockId
+        focusedBlockId,
+        dublicateBlock,
+        copy
     }
 }
 

@@ -3,13 +3,15 @@ import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { ReactNode } from "react";
+import { ReactNode, useContext } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
 import ToggleBlock from "./blocks/toggleblock";
+import { EditorContext } from "./editor";
+import { toast } from "sonner";
 
-export function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, onTypeSelect?: (type: BlockType)=> void}) {
+export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId?: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
     
     const types: Array<{
         icon: LucideIcon
@@ -109,18 +111,36 @@ export function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, o
                     <DropdownMenuSeparator/>
 
                     <DropdownMenuGroup>
-                        <DropdownMenuItem>
-                            <Copy/>
-                            Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Clipboard/>
-                            Copy to clipboard
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                            <Trash/>
-                            Delete
-                        </DropdownMenuItem>
+                        {
+                            [
+                                {
+                                    label: "Duplicate",
+                                    icon: Copy,
+                                    action: "duplicate"
+                                },
+                                {
+                                    label: "Copy to clipboard",
+                                    icon: Clipboard,
+                                    action: "copy"
+                                },
+                                {
+                                    label: "Delete",
+                                    icon: Trash,
+                                    action: "delete"
+                                }
+                            ].map((item, idx) => {
+                                return (
+                                    <DropdownMenuItem
+                                        onClick={()=> {
+                                            if(onItemSelect) onItemSelect(blockId ?? "", item.action)
+                                        }}
+                                        key={idx}>
+                                        <item.icon/>
+                                        {item.label}
+                                    </DropdownMenuItem>
+                                )
+                            })
+                        }
                     </DropdownMenuGroup>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -132,6 +152,8 @@ export function BlockWrapper({ children, onTypeSelect }: {children: ReactNode, o
 export default function BlockRenderor(props: BlockComponentProps) {
 
     const { type, id, onChange, block } = props
+    const { editor } = useContext(EditorContext)
+
 
     const handleBlockTypeChange = (type: BlockType) => {
         if(onChange){
@@ -153,12 +175,33 @@ export default function BlockRenderor(props: BlockComponentProps) {
         }
     }
 
+    const handleItemClick = async (blockId: string, action: string) => {
+        
+        console.log(action);
+        
+        switch(action){
+            case "delete":
+                await editor.deleteBlock(blockId)    
+                break;
+            case "duplicate":
+                await editor.dublicateBlock(blockId)
+                break;
+            case "copy":
+                await editor.copy(blockId).then(() => {
+                    toast.success("Copied to Clipboard")
+                })            
+                break;
+        }
+    }
+
     const {listIndex, ...rest} = props
 
     switch (type) {
         case "text":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <TextBlock {...rest} />
                 </BlockWrapper>
@@ -169,6 +212,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "heading3":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <HeadingBlock
                         placeholder={"Heading " + Number(type.at(-1))}
@@ -178,6 +223,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "quote":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <QuoteBlock
                         placeholder="Empty quote"
@@ -187,6 +234,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "ordered_list":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         index={listIndex}
@@ -197,6 +246,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "bullet_list":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         placeholder="List"
@@ -206,6 +257,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "check_list":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         placeholder="To-do"
@@ -215,6 +268,8 @@ export default function BlockRenderor(props: BlockComponentProps) {
         case "divider":
             return (
                 <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
                     onTypeSelect={handleBlockTypeChange}>
                     <Separator/>
                 </BlockWrapper>
