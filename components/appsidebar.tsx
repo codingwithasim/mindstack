@@ -8,6 +8,7 @@ import { Button } from "./ui/button"
 import { useRouter } from "next/navigation"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { useTheme } from "next-themes"
+import { SearchCommand } from "./SearchCommand"
 
 export default function AppSideBar() {
 
@@ -115,9 +116,10 @@ export default function AppSideBar() {
                 <SidebarGroup>
                     <SidebarMenu>
                         <SidebarMenuItem>
-                            <SidebarMenuButton>
+                            <SearchCommand/>
+                            {/* <SidebarMenuButton>
                                 <Search /> Search
-                            </SidebarMenuButton>
+                            </SidebarMenuButton> */}
                         </SidebarMenuItem>
 
                         <SidebarMenuItem>

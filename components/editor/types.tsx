@@ -30,3 +30,10 @@ export type BlockComponentProps = {
     data: { text: string}
     registerRef: (id: string, el: HTMLElement) => void
 }
+
+export type Page = {
+    id: number
+    title: string
+    updatedAt: number
+    createdAt: number    
+}
