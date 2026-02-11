@@ -65,14 +65,11 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
         }
     ]
 
-    const id = crypto.randomUUID()
-    
-    
     return (
-        <div data-row-id={id} className={"flex items-center gap-2 flex-1 group"}>
+        <div className={"flex items-center gap-2 flex-1 group"}>
             <DropdownMenu>
                 <DropdownMenuTrigger>
-                    <div className={`group-hover:visible group-focus:visible invisible py-1 rounded-sm cursor-grab text-gray-400 hover:bg-gray-100`}>
+                    <div className={`group-hover:visible group-focus:visible invisible py-1 rounded-sm cursor-grab text-gray-400 hover:bg-zinc-200 dark:hover:bg-zinc-700`}>
                         <GripVertical size={18} />
                     </div>
                 </DropdownMenuTrigger>
@@ -176,8 +173,6 @@ export default function BlockRenderor(props: BlockComponentProps) {
     }
 
     const handleItemClick = async (blockId: string, action: string) => {
-        
-        console.log(action);
         
         switch(action){
             case "delete":

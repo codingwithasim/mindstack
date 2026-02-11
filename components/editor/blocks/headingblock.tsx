@@ -8,7 +8,7 @@ export default function HeadingBlock({ level = 1, ...props }: TextWrapperProps &
 
     return (
         <TextWrapper 
-            className={cn("w-full font-bold py-1 text-zinc-800", level === 1 && "text-3xl", level === 2 && "text-2xl", level === 3 && "text-xl")}
+            className={cn("w-full font-bold py-1", level === 1 && "text-3xl", level === 2 && "text-2xl", level === 3 && "text-xl")}
             tag={type}
             {...props}
         />

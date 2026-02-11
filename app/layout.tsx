@@ -5,6 +5,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSideBar from "@/components/appsidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,14 +30,17 @@ export default async function RootLayout({
 
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SidebarProvider>
-          <AppSideBar/>
-          <SidebarTrigger/>
-          {children}
+          <ThemeProvider attribute={"class"} enableSystem defaultTheme={"system"}>
+            <AppSideBar/>
+            <SidebarTrigger/>
+            {children}
+          </ThemeProvider>
+
           <Toaster/>
         </SidebarProvider>
       </body>

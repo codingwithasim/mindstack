@@ -1,19 +1,23 @@
 "use client"
 
-import { File, FileText, Home, LayoutDashboard, MoreVertical, Pencil, PenLine, Plus, Search, Settings, Trash } from "lucide-react"
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "./ui/sidebar"
+import { File, FileText, Home, LayoutDashboard, MoonIcon, MoreVertical, Pencil, PenLine, Plus, Search, Settings, Sunrise, Sunset, Trash } from "lucide-react"
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "./ui/sidebar"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "./ui/button"
-import { navigate } from "next/dist/client/components/segment-cache/navigation"
 import { useRouter } from "next/navigation"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import { useTheme } from "next-themes"
 
 export default function AppSideBar() {
 
     const [pages, setPages] = useState<any[]>([])
 
     const router = useRouter()
+
+    const {theme, setTheme} = useTheme()
+
+    
 
     useEffect(() => {
         fetch("/api/pages").then(response => {
@@ -83,8 +87,6 @@ export default function AppSideBar() {
                 throw new Error("Failed to delete page")
             }
 
-
-
             router.push("/")
         } catch (err) {
             console.log(err)
@@ -92,10 +94,16 @@ export default function AppSideBar() {
 
     }
 
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => setMounted(true), [])
+
+    if(!mounted) return null
+
     return (
         <Sidebar collapsible="icon">
             <SidebarHeader>
-                <SidebarMenuButton size={"lg"} className="bg-gray-100">
+                <SidebarMenuButton size={"lg"} className="bg-zinc-100 dark:bg-zinc-800">
                     <div className="bg-indigo-700 text-white size-8 aspect-square rounded-lg grid place-items-center">
                         <PenLine size={16} />
                     </div>
@@ -103,7 +111,7 @@ export default function AppSideBar() {
                 </SidebarMenuButton>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent className="overflow-hidden">
                 <SidebarGroup>
                     <SidebarMenu>
                         <SidebarMenuItem>
@@ -126,9 +134,9 @@ export default function AppSideBar() {
                         <Button
                             variant={"secondary"}
                             size={"icon-xs"}
-                            className="ml-auto hover:bg-gray-200"
+                            className="ml-auto hover:bg-zinc-200 dark:hover:bg-zinc-700"
                             onClick={handlePageCreation}>
-                            <Plus color="#121212" />
+                            <Plus/>
                         </Button>
                     </SidebarGroupLabel>
 
@@ -139,15 +147,15 @@ export default function AppSideBar() {
                                     <SidebarMenuItem key={page.id} >
                                         <SidebarMenuButton asChild>
                                             <Link
-                                                className="text-gray-700 truncate group/page"
+                                                className="text-gray-700 dark:text-gray-200 truncate group/page"
                                                 href={"/pages/" + page.id}>
                                                 <FileText /> {page.title ?? "New page"}
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button
                                                             variant={"secondary"}
-                                                            size={"icon-x"}
-                                                            className="bg-transparent hover:bg-gray-200 ml-auto invisible group-hover/page:visible transition-none">
+                                                            size={"icon-xs"}
+                                                            className="bg-transparent hover:bg-zinc-200 dark:hover:bg-zinc-700 ml-auto invisible group-hover/page:visible transition-none">
                                                             <MoreVertical/>
                                                         </Button>
                                                     </DropdownMenuTrigger>
@@ -184,6 +192,15 @@ export default function AppSideBar() {
                         </SidebarMenuItem>
                     </SidebarMenu>
                 </SidebarGroup>
+
+                <SidebarFooter className="mt-auto">
+                    <SidebarMenuButton onClick={()=> setTheme(theme === "dark" ? "light" : "dark")}>
+                        {
+                            theme === "dark" ? <Sunrise/> : <Sunset/>
+                        }
+                        {theme === "dark" ? "Light" : "Dark"} mode
+                    </SidebarMenuButton>
+                </SidebarFooter>
             </SidebarContent>
         </Sidebar>
     )

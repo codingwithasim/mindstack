@@ -52,7 +52,7 @@ export default function TextWrapper({ id, onChange, placeholder, onEnter, tag = 
             requestFocus={focus}
             tag={tag}
             placeholder={placeholder}
-            className={cn("w-full text-zinc-800", props.className)}
+            className={cn("w-full", props.className)}
             registerRef={(el) => {
                 if(registerRef) registerRef(id, el)
             }}

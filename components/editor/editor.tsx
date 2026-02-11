@@ -11,7 +11,6 @@ type EditorProps = {
     params: { id: number }
 }
 
-
 export const EditorContext = createContext<any>(null)
 
 export default function Editor({ params }: EditorProps) {
@@ -39,10 +38,10 @@ export default function Editor({ params }: EditorProps) {
                             editor.createFirstBlock()
                         }
                     }}
-                    className={cn("text-3xl font-bold", editor.title.length && "text-black")}/>
+                    className={cn("text-3xl font-bold", editor.title.length && "text-primary")}/>
             </header>
             <main
-                className="max-w-[1024px] h-full m-auto select-text">
+                className="dark:bg-background max-w-[1024px] h-full m-auto select-text">
                 {
                     editor.blocks.map((block, idx) => {
                         const listIndex = block.type === "ordered_list" ?

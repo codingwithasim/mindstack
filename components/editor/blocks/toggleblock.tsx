@@ -16,8 +16,6 @@ export default function ToggleBlock(props: TextWrapperProps) {
 
     const { editor } = useContext(EditorContext)
 
-    const [state, setState] = useState<"open" | "close">("open")
-
     const [subBlocks, setSubBlocks] = useState<Block[]>()
 
     const handleStateChange = (opened: boolean) => {
@@ -82,7 +80,7 @@ export default function ToggleBlock(props: TextWrapperProps) {
                 <div className="flex gap-1 w-full">
                     <div
                         onClick={() => handleStateChange(props.block.data.opened ?? true ? false : true)}
-                        className="hover:bg-gray-200 h-fit mt-1 cursor-pointer p-1 rounded-sm">
+                        className="hover:bg-zinc-200 dark:hover:bg-zinc-700 h-fit mt-1 cursor-pointer p-1 rounded-sm">
                         { props.block.data.opened ?? true ? <ChevronsDownUp size={14} /> : <ChevronsUpDown size={14} />}
                     </div>
                     <TextWrapper className="w-full font-medium" placeholder="Toggle" {...props} />
