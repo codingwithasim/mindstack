@@ -1,6 +1,6 @@
 "use client"
 
-import { File, FileText, Home, LayoutDashboard, MoonIcon, MoreVertical, Pencil, PenLine, Plus, Search, Settings, Sunrise, Sunset, Trash } from "lucide-react"
+import { Cuboid, File, FileText, Home, LayoutDashboard, MoonIcon, MoreVertical, Pencil, PenLine, Plus, Search, Settings, Shapes, Sunrise, Sunset, Trash } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarSeparator } from "./ui/sidebar"
 import { useEffect, useState } from "react"
 import Link from "next/link"
@@ -106,7 +106,7 @@ export default function AppSideBar() {
             <SidebarHeader>
                 <SidebarMenuButton size={"lg"} className="bg-zinc-100 dark:bg-zinc-800">
                     <div className="bg-indigo-700 text-white size-8 aspect-square rounded-lg grid place-items-center">
-                        <PenLine size={16} />
+                        <Shapes size={16} />
                     </div>
                     <span className="font-medium">Mindstack</span>
                 </SidebarMenuButton>

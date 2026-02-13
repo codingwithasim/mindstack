@@ -1,11 +1,12 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { createContext, useEffect, useState } from "react"
+import { createContext, useCallback, useEffect, useState } from "react"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
 import { Trash } from "lucide-react"
 import BlockRenderor from "./renderor"
+import { Block } from "./types"
 
 type EditorProps = {
     params: { id: number }
@@ -24,6 +25,18 @@ export default function Editor({ params }: EditorProps) {
         return () => document.removeEventListener("keydown", handler)
     }, [editor.blocks])
 
+    const handleEnter = useCallback(editor.handleEnter, [editor])
+
+    const handleFocus = (block: Block, idx: number) => {
+                                        editor.setIndex(idx)
+                                        editor.setFocusedBlockId(block.id)
+                                        console.log("parent id", block.id);
+                                        
+                                    }
+    const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {
+        editor.registerRef(id, el)
+    }, [])
+                                    
     return (
         <EditorContext value={{editor}}>
             <div className="w-screen">
@@ -51,28 +64,20 @@ export default function Editor({ params }: EditorProps) {
                         if(block.parentBlockId) return null
 
                         return (
-                            <div className="flex" key={idx}>
+                            <div className="flex" key={block.id}>
                                 <BlockRenderor
-                                    key={block.id}
                                     id={block.id}
                                     block={block}
                                     order={block.order}
                                     type={block.type}
                                     listIndex={listIndex}
                                     focus={block.id === editor.focusedBlockId}
-                                    onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
-                                    onFocus={() => {
-                                        editor.setIndex(idx)
-                                        editor.setFocusedBlockId(block.id)
-                                        console.log("parent id", block.id);
-                                        
-                                    }}
+                                    onEnter={handleEnter}
+                                    onFocus={()=> handleFocus(block, idx)}
                                     onBackspace={editor.handleBackspace}
                                     onChange={(block) => editor.handleDataChanges(block)}
                                     data={block.data}
-                                    registerRef={(id, el) => {
-                                        editor.registerRef(id, el)
-                                    }}
+                                    registerRef={handleRegisterRef}
                                 />
 
                                 <Trash className="opacity-0 cursor-pointer group-hover:opacity-55" size={16} onClick={()=> editor.deleteBlock(block.id)}/>

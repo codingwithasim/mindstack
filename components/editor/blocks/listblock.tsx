@@ -32,7 +32,7 @@ export default function ListBlock({listType="ordered", index, ...props}: ListPro
 
     return (
         <div className="flex items-center gap-2.5 flex-1">
-            <div className={cn("px-2 grid text-center place-items-center w-6 select-none text-muted-foreground", listType === "unordered" && "text-black text-2xl")}>
+            <div className={cn("px-2 grid text-center place-items-center w-6 select-none text-muted-foreground", listType === "unordered" && "text-black dark:text-white text-2xl")}>
                 {
                     listType === "ordered" ?
                     listIndex + '.' :

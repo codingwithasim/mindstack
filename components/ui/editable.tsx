@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { FormEvent, HTMLAttributes, useEffect, useRef, useState } from "react"
+import { FormEvent, HTMLAttributes, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 
 type EditableProps = {
@@ -21,13 +21,29 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
     const isControlled = controlledValue !== undefined
     const value = isControlled ? controlledValue : uncontrolledValue
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         const node = divRef.current
         if (!node) return
         const nextValue = value ?? ""
 
-        if (node.textContent !== nextValue) {
-            node.textContent = nextValue
+        if (node.textContent === nextValue) return
+
+        const isFocused = document.activeElement === node
+        const selection = isFocused ? window.getSelection() : null
+        const selectionInNode = Boolean(selection && selection.anchorNode && node.contains(selection.anchorNode))
+        const offset = selectionInNode ? selection!.anchorOffset : 0
+
+        node.textContent = nextValue
+
+        if (isFocused && selectionInNode) {
+            const textNode = node.firstChild
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+                const range = document.createRange()
+                range.setStart(textNode, Math.min(offset, textNode.textContent!.length))
+                range.collapse(true)
+                selection!.removeAllRanges()
+                selection!.addRange(range)
+            }
         }
     }, [value, tag])
 

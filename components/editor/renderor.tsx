@@ -3,7 +3,7 @@ import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockComponentProps, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { ReactNode, useContext } from "react";
+import { memo, ReactNode, useContext } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
@@ -146,7 +146,7 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
     )
 }
 
-export default function BlockRenderor(props: BlockComponentProps) {
+function BlockRenderor(props: BlockComponentProps) {
 
     const { type, id, onChange, block } = props
     const { editor } = useContext(EditorContext)
@@ -282,3 +282,5 @@ export default function BlockRenderor(props: BlockComponentProps) {
             return null
     }
 }
+
+export default memo(BlockRenderor)

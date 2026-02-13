@@ -49,7 +49,7 @@ export function SearchCommand() {
 
     return (
         <div className="flex flex-col gap-4">
-            <SidebarMenuButton onClick={() => setOpen(true)}>
+            <SidebarMenuButton className="cursor-pointer" onClick={() => setOpen(true)}>
                 <Search />
                 Search
 

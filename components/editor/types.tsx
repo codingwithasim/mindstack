@@ -23,7 +23,7 @@ export type BlockComponentProps = {
     focus: boolean
     type: string
     listIndex?: number
-    onEnter: (blockId: string, cursorPos: number) => void
+    onEnter: (blockId: string, cursorPos: number, text?: string) => void
     onBackspace: (blockId: string, cursorPos: number) => void
     onFocus: () => void
     onChange: (block: Block) => void
