@@ -79,9 +79,9 @@ export default function ToggleBlock(props: TextWrapperProps) {
             <BlockWrapper>
                 <div className="flex gap-1 w-full">
                     <div
-                        onClick={() => handleStateChange(props.block.data.opened ?? true ? false : true)}
+                        onClick={() => handleStateChange(props.block.data.opened ?? false ? false : true)}
                         className="hover:bg-zinc-200 dark:hover:bg-zinc-700 h-fit mt-1 cursor-pointer p-1 rounded-sm">
-                        { props.block.data.opened ?? true ? <ChevronsDownUp size={14} /> : <ChevronsUpDown size={14} />}
+                        { props.block.data.opened ?? false ? <ChevronsDownUp size={14} /> : <ChevronsUpDown size={14} />}
                     </div>
                     <TextWrapper className="w-full font-medium" placeholder="Toggle" {...props} />
                 </div>
@@ -107,7 +107,7 @@ export default function ToggleBlock(props: TextWrapperProps) {
                                     type={block.type}
                                     listIndex={listIndex}
                                     focus={block.id === editor.focusedBlockId}
-                                    onEnter={(currentBlock, cursorPos) => editor.handleEnter(currentBlock, cursorPos)}
+                                    onEnter={(currentBlock, cursorPos, text) => editor.handleEnter(currentBlock, cursorPos, text)}
                                     onFocus={() => {
                                         editor.setIndex(idx)
                                         editor.setFocusedBlockId(block.id)

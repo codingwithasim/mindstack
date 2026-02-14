@@ -78,10 +78,7 @@ export default function useEditor(pageId: number) {
 
         cursorPos = Math.max(0, Math.min(cursorPos, previous.data.text.length))
 
-        if (previous.parentBlockId) {
-            console.log("Yes this block has parnet");
-
-        }
+        
         //Calculate new order for block
         const orderBefore = parseFloat(previous.order) || 0
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
@@ -96,6 +93,7 @@ export default function useEditor(pageId: number) {
         let newBlockData: Partial<{
             text: string
             checked: boolean
+            opened: boolean
         }> = {}
 
         newBlockData.text = previous.data.text.slice(cursorPos)
@@ -103,6 +101,22 @@ export default function useEditor(pageId: number) {
         if (previous.type === "check_list") {
             newBlockData.checked = false
         }
+
+        let newType = "text"
+        
+        if(isHeading && cursorPos === 0){
+            newType = previous.type
+        }
+
+        if(["check_list", "bullet_list", "ordered_list"].includes(previous.type)){
+            newType = previous.type
+        }
+
+        if(previous.type === "toggle") {
+            newType = previous.type
+            newBlockData.opened = false
+        }
+
         return [
             ...blocks.slice(0, idx),
             //Previous block
@@ -117,7 +131,7 @@ export default function useEditor(pageId: number) {
             {
                 id: crypto.randomUUID(),
                 parentBlockId: previous.parentBlockId,
-                type: isHeading && cursorPos === 0 || ["check_list", "bullet_list", "ordered_list"].includes(previous.type) ? previous.type : "text",
+                type: newType,
                 order: newOrder,
                 data: newBlockData,
                 createdAt: Date.now(),
@@ -367,6 +381,73 @@ export default function useEditor(pageId: number) {
             return
         }
 
+        if (current.type === "toggle") {
+            const isCursorAtStart = cursorPos === 0
+            const isCursorAtEnd = cursorPos === text?.length
+            const isEmpty = text?.length === 0
+
+            if (isEmpty) {
+                updateBlock(blockId, { type: "text" })
+                return
+            }
+
+            if (isCursorAtStart) {
+                const prev = blocks[index - 1]
+                const order = (parseFloat(current.order) + (prev ? parseFloat(prev.order) : 0)) / 2
+
+                const newBlocks = insertBlock(blocks, {
+                    id: crypto.randomUUID(),
+                    type: "toggle",
+                    parentBlockId: null,
+                    data: {
+                        text: "",
+                        opened: false
+                    },
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    order: order.toFixed(12)
+                })
+
+                newBlocks[index + 1] = current
+                setBlocks(newBlocks)
+                await createBlockAPI(pageId, newBlocks[index])
+
+                return
+            }
+
+            if (isCursorAtEnd) {
+
+                if (current.data.opened) {
+                    const orderBefore = parseFloat(current.order)
+                    const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
+                    const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
+
+                    const newBlocks = insertBlock(blocks, {
+                        id: crypto.randomUUID(),
+                        type: "text",
+                        data: {
+                            text: ""
+                        },
+                        parentBlockId: blockId,
+                        order: newOrder,
+                        createdAt: Date.now(),
+                        updatedAt: Date.now()
+                    })
+
+                    newBlocks[index] = { ...current, data: { ...current.data, opened: true } }
+
+                    setBlocks(newBlocks)
+                    setFocusedBlockId(newBlocks[index + 1].id)
+
+                    await createBlockAPI(pageId, newBlocks[index + 1])
+                    await updateAPI(blockId, { data: { ...current.data, opened: true } })
+    
+                    return
+                }
+            }
+
+        }
+
         //Calculate new order for block
         const orderBefore = parseFloat(current.order)
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
@@ -442,13 +523,12 @@ export default function useEditor(pageId: number) {
         })
     }
 
-    const handleBackspace = async (blockId: string, cursorPos: number) => {
-
+    const handleBackspace = async (blockId: string, cursorPos: number, text: string) => {
         if (cursorPos) return
 
         const idx = blocks.findIndex(b => b.id === blockId)
 
-        if (["bullet_list", "ordered_list", "check_list", "quote"].includes(blocks[idx].type)) {
+        if (["bullet_list", "ordered_list", "check_list", "quote", "toggle"].includes(blocks[idx].type)) {
             if (cursorPos === 0) {
                 handleDataChanges({
                     ...blocks[idx],
@@ -472,10 +552,9 @@ export default function useEditor(pageId: number) {
         if (prevIndex === -1) return
 
         const prevBlock = blocks[prevIndex]
-        const currentBlock = blocks[idx]
 
         const resolvedData = {
-            text: prevBlock.data.text + currentBlock.data.text
+            text: prevBlock.data.text + text
         }
 
         setBlocks(prev => {
@@ -495,6 +574,7 @@ export default function useEditor(pageId: number) {
             return updates
         })
 
+        console.log(resolvedData);
 
 
         setFocusedIndex(prevIndex)
@@ -505,8 +585,8 @@ export default function useEditor(pageId: number) {
         focusAt(blocks[prevIndex].id, mergedLength)
 
         console.log(resolvedData);
-        
-        await updateAPI(blocks[prevIndex].id, { data: resolvedData})
+
+        await updateAPI(blocks[prevIndex].id, { data: resolvedData })
         await deleteBlockAPI(blockId)
     }
 
