@@ -1,14 +1,13 @@
-import { Check, ChevronRight, Clipboard, Copy, DivideCircle, GripVertical, Heading1, Heading2, Heading3, List, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
+import { Clipboard, Copy, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
-import { Block, BlockComponentProps, BlockType } from "./types";
+import { BlockComponentProps, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { memo, ReactNode, useContext } from "react";
+import { memo, ReactNode, useEffect } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
 import ToggleBlock from "./blocks/toggleblock";
-import { EditorContext } from "./editor";
 import { toast } from "sonner";
 
 export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId?: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
@@ -148,9 +147,9 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
 
 function BlockRenderor(props: BlockComponentProps) {
 
-    const { type, id, onChange, block } = props
-    const { editor } = useContext(EditorContext)
+    const { type, id, onChange, block, onDelete, onDuplicate, onCopy } = props
 
+    
 
     const handleBlockTypeChange = (type: BlockType) => {
         if(onChange){
@@ -176,20 +175,25 @@ function BlockRenderor(props: BlockComponentProps) {
         
         switch(action){
             case "delete":
-                await editor.deleteBlock(blockId)    
+                if (onDelete) {
+                    await onDelete(blockId)
+                }
                 break;
             case "duplicate":
-                await editor.dublicateBlock(blockId)
+                if (onDuplicate) {
+                    await onDuplicate(blockId)
+                }
                 break;
             case "copy":
-                await editor.copy(blockId).then(() => {
+                if (onCopy) {
+                    await onCopy(blockId)
                     toast.success("Copied to Clipboard")
-                })            
+                }
                 break;
         }
     }
 
-    const {listIndex, ...rest} = props
+    const {listIndex, onDelete : s, onDuplicate: d, ...rest} = props
 
     switch (type) {
         case "text":

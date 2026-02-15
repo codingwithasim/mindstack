@@ -25,17 +25,19 @@ export default function Editor({ params }: EditorProps) {
         return () => document.removeEventListener("keydown", handler)
     }, [editor.blocks])
 
-    const handleEnter = useCallback(editor.handleEnter, [editor])
+    const handleEnter = useCallback(editor.handleEnter, [editor.handleEnter])
 
-    const handleFocus = (block: Block, idx: number) => {
-                                        editor.setIndex(idx)
-                                        editor.setFocusedBlockId(block.id)
-                                        console.log("parent id", block.id);
-                                        
-                                    }
+    const handleFocus = useCallback((blockId: string) => {
+        editor.setFocusedBlockId(blockId)
+    }, [editor.setFocusedBlockId])
+
     const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {
         editor.registerRef(id, el)
-    }, [])
+    }, [editor.registerRef])
+
+    const handleChanges = useCallback((block: Block) => {
+        editor.handleDataChanges(block)
+    }, [editor.handleDataChanges])
                                     
     return (
         <EditorContext value={{editor}}>
@@ -73,14 +75,16 @@ export default function Editor({ params }: EditorProps) {
                                     listIndex={listIndex}
                                     focus={block.id === editor.focusedBlockId}
                                     onEnter={handleEnter}
-                                    onFocus={()=> handleFocus(block, idx)}
+                                    onDelete={editor.deleteBlock}
+                                    onCopy={editor.copy}
+                                    onDuplicate={editor.dublicateBlock}
+                                    onFocus={handleFocus}
                                     onBackspace={editor.handleBackspace}
-                                    onChange={(block) => editor.handleDataChanges(block)}
+                                    onChange={handleChanges}
                                     data={block.data}
+                                    onSpace={editor.onSpace}
                                     registerRef={handleRegisterRef}
                                 />
-
-                                <Trash className="opacity-0 cursor-pointer group-hover:opacity-55" size={16} onClick={()=> editor.deleteBlock(block.id)}/>
                             </div>
                         )
                     })

@@ -1,11 +1,9 @@
 "use client"
 
-
 import Editable from "@/components/ui/editable";
-import { FormEvent, HTMLAttributes, memo, RefObject, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { HTMLAttributes, useCallback, useEffect, useRef, useState } from "react";
 import { Block } from "../types";
 import { cn } from "@/lib/utils";
-import { EditorContext } from "../editor";
 
 export type TextWrapperProps = {
     id: string
@@ -14,33 +12,35 @@ export type TextWrapperProps = {
     parentBlockId?: number
     onEnter?: (currentBlock: string, cursorPos: number, text?: string) => void
     onChange?: (block: Block) => void
-    onFocus?: () => void
+    onFocus?: (blockId: string) => void
     onBackspace?: (id: string, cursorPos: number, text: string) => void
     focus?: boolean
     block: Block
     tag?: string
     placeholder?: string
     registerRef?: (id: string, el: HTMLDivElement) => void
+    onSpace?: (blockId: string, text: string) => void
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
-
-
-    const { editor } = useContext(EditorContext)
+function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
 
     const [draft, setDraft] = useState<string>(block.data.text)
     const inputRef = useRef<HTMLDivElement>(undefined)
-    const {defaultValue, ...rest} = props
+    const { defaultValue, ...rest } = props
+
+    useEffect(() => {
+        console.log("re-rendering");
+    })
 
     const commitChanges = useCallback(() => {
         if (!onChange) return
-        if(!inputRef.current) return
+        if (!inputRef.current) return
 
-        const nextText : string = (inputRef.current.textContent ?? "").trimStart()
+        const nextText: string = (inputRef.current.textContent ?? "").trimStart()
 
         //Text has not changed yet
-        if( nextText === block.data.text) return
+        if (nextText === block.data.text) return
 
         const resolvedData = {
             ...block.data,
@@ -53,21 +53,15 @@ function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, f
         })
     }, [inputRef.current, block.data.text])
 
-
-    useEffect(()=> {
-        console.log("re-rendering");
-        
-    })
-
-    useEffect(()=> {
+    useEffect(() => {
         setDraft(block.data.text)
     }, [block.id, block])
 
     return (
         <Editable
             value={draft}
-            onClick={() => { if (onFocus) onFocus() }}
-            onChange={value => { 
+            onClick={() => { if (onFocus) onFocus(block.id) }}
+            onChange={value => {
                 setDraft(value.toString())
             }}
             onBlur={commitChanges}
@@ -76,8 +70,8 @@ function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, f
             placeholder={placeholder}
             className={cn("w-full", props.className)}
             registerRef={(el) => {
-                if(registerRef) registerRef(id, el)
-                if(!inputRef.current){
+                if (registerRef) registerRef(id, el)
+                if (!inputRef.current) {
                     inputRef.current = el
                 }
             }}
@@ -96,13 +90,16 @@ function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, f
                 }
 
                 if (e.key === " ") {
+
+                    if (!onSpace) return
+
                     const text = e.currentTarget.textContent ?? ""
-                    editor.onSpace(block.id, text)
+                    onSpace(block.id, text)
                 }
 
-                if(e.key === "Backspace"){
+                if (e.key === "Backspace") {
                     const text = inputRef.current?.textContent ?? draft
-                    if(onBackspace) onBackspace(id, window.getSelection()?.anchorOffset ?? -1, text)
+                    if (onBackspace) onBackspace(id, window.getSelection()?.anchorOffset ?? -1, text)
                 }
             }}
             {...rest}
@@ -110,4 +107,4 @@ function TextWrapper({ id, onChange, placeholder, onEnter, tag = "div", block, f
     )
 }
 
-export default memo(TextWrapper)
+export default TextWrapper

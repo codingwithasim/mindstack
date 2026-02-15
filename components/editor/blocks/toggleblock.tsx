@@ -30,22 +30,6 @@ export default function ToggleBlock(props: TextWrapperProps) {
         }))
     }, [editor.blocks])
 
-    const handleChange = (block: Block) => {
-        editor.handleDataChanges(block)
-
-
-        setSubBlocks(prev => {
-            if (!prev) return prev
-
-            return prev.map(b => {
-                if (b.id === block.id) {
-                    return { ...b, data: { ...b.data, text: block.data.text } }
-                }
-                return b
-            })
-        })
-    }
-
     const createBlock = () => {
 
         const idx = editor.blocks.findIndex(b => b.id == id)
@@ -93,7 +77,7 @@ export default function ToggleBlock(props: TextWrapperProps) {
 
                 {
                     props.block.data.opened &&
-                        subBlocks?.length ? subBlocks.map((block, idx) => {
+                        subBlocks?.length ? subBlocks.map((block) => {
 
                             const listIndex = block.type === "ordered_list" ?
                                 editor.getNumberedListIndex(subBlocks, block.id) : undefined
@@ -107,19 +91,15 @@ export default function ToggleBlock(props: TextWrapperProps) {
                                     type={block.type}
                                     listIndex={listIndex}
                                     focus={block.id === editor.focusedBlockId}
-                                    onEnter={(currentBlock, cursorPos, text) => editor.handleEnter(currentBlock, cursorPos, text)}
-                                    onFocus={() => {
-                                        editor.setIndex(idx)
-                                        editor.setFocusedBlockId(block.id)
-                                        console.log(block.id);
-
-                                    }}
+                                    onEnter={editor.handleEnter}
+                                    onFocus={editor.focusBlock}
                                     onBackspace={editor.handleBackspace}
-                                    onChange={(block) => handleChange(block)}
+                                    onChange={editor.handleDataChanges}
                                     data={block.data}
-                                    registerRef={(id, el) => {
-                                        editor.registerRef(id, el)
-                                    }}
+                                    registerRef={editor.registerRef}
+                                    onDelete={editor.deleteBlock}
+                                    onDuplicate={editor.dublicateBlock}
+                                    onCopy={editor.copy}
                                 />
                             )
                         }) :

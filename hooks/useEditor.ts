@@ -1,7 +1,17 @@
 "use client"
 
 import { Block, BlockType } from "@/components/editor/types";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
+function useEvent<T extends (...args: any[]) => any>(handler: T): T {
+    const handlerRef = useRef(handler)
+
+    useLayoutEffect(() => {
+        handlerRef.current = handler
+    }, [handler])
+
+    return useCallback(((...args: any[]) => handlerRef.current(...args)) as T, [])
+}
 
 export default function useEditor(pageId: number) {
 
@@ -759,26 +769,40 @@ export default function useEditor(pageId: number) {
         })
     }
 
+    const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
+    const handleEnterEvent = useEvent(handleEnter)
+    const handleDeleteBlockEvent = useEvent(handleDeleteBlock)
+    const handleDataChangesEvent = useEvent(handleDataChanges)
+    const handleBackspaceEvent = useEvent(handleBackspace)
+    const registerRefEvent = useEvent(registerRef)
+    const renamePageAPIEvent = useEvent(renamePageAPI)
+    const createFirstBlockEvent = useEvent(createFirstBlock)
+    const getNumberedListIndexEvent = useEvent(getNumberedListIndex)
+    const createBlockEvent = useEvent(createBlock)
+    const dublicateBlockEvent = useEvent(dublicateBlock)
+    const copyEvent = useEvent(copy)
+    const handleSpaceEvent = useEvent(handleSpace)
+
     return {
         title,
         blocks,
         currentIndex: focusedIndex,
         setIndex: setFocusedIndex,
-        handleArrowNavigation,
-        handleEnter,
-        deleteBlock: handleDeleteBlock,
-        handleDataChanges,
-        handleBackspace,
-        registerRef,
-        renamePageAPI,
-        createFirstBlock,
-        getNumberedListIndex,
-        createBlock,
+        handleArrowNavigation: handleArrowNavigationEvent,
+        handleEnter: handleEnterEvent,
+        deleteBlock: handleDeleteBlockEvent,
+        handleDataChanges: handleDataChangesEvent,
+        handleBackspace: handleBackspaceEvent,
+        registerRef: registerRefEvent,
+        renamePageAPI: renamePageAPIEvent,
+        createFirstBlock: createFirstBlockEvent,
+        getNumberedListIndex: getNumberedListIndexEvent,
+        createBlock: createBlockEvent,
         setFocusedBlockId,
         focusedBlockId,
-        dublicateBlock,
-        copy,
-        onSpace: handleSpace
+        dublicateBlock: dublicateBlockEvent,
+        copy: copyEvent,
+        onSpace: handleSpaceEvent
     }
 }
 
