@@ -100,6 +100,7 @@ export default function ToggleBlock(props: TextWrapperProps) {
                                     onDelete={editor.deleteBlock}
                                     onDuplicate={editor.dublicateBlock}
                                     onCopy={editor.copy}
+                                    onSpace={props.onSpace}
                                 />
                             )
                         }) :

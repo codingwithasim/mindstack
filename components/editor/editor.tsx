@@ -29,6 +29,7 @@ export default function Editor({ params }: EditorProps) {
 
     const handleFocus = useCallback((blockId: string) => {
         editor.setFocusedBlockId(blockId)
+        console.log(blockId);
     }, [editor.setFocusedBlockId])
 
     const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {

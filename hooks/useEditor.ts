@@ -1,7 +1,7 @@
 "use client"
 
 import { Block, BlockType } from "@/components/editor/types";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 function useEvent<T extends (...args: any[]) => any>(handler: T): T {
     const handlerRef = useRef(handler)
@@ -51,6 +51,10 @@ export default function useEditor(pageId: number) {
                 )
             })
     }, [])
+
+    useEffect(()=> {
+        console.log(focusedBlockId);
+    }, [focusedBlockId])
 
     /**========================= Helper functions =========================== */
 
@@ -313,13 +317,17 @@ export default function useEditor(pageId: number) {
             setFocusedBlockId(prevId => {
 
                 const idx = blocks.findIndex(b => b.id === prevId)
-
                 if (prevId === null || idx === 0) return prevId
+
+                
 
                 const sel = window.getSelection()
                 if (!sel) return prevId
 
                 if (sel.anchorOffset !== 0) return prevId
+
+                console.log('Called Arrow Navigation');
+
 
                 let prevIndex: number
 
@@ -376,7 +384,7 @@ export default function useEditor(pageId: number) {
 
         let current = blocks[index]
 
-        if (text) {
+        if (text !== undefined) {
             current = {
                 ...current, data: {
                     ...current.data, text
@@ -388,6 +396,7 @@ export default function useEditor(pageId: number) {
 
         if (current.type.endsWith("list") && !current.data.text.length) {
             updateBlock(blockId, { type: "text" })
+            updateAPI(blockId, {type: "text"})
             return
         }
 
@@ -478,6 +487,8 @@ export default function useEditor(pageId: number) {
         setBlocks(newBlocks)
         setFocusedIndex(index + 1)
         setFocusedBlockId(newBlocks[index + 1].id)
+        console.log(newBlocks[index + 1].id);
+        
 
         //Call API
         try {
@@ -542,7 +553,11 @@ export default function useEditor(pageId: number) {
             if (cursorPos === 0) {
                 handleDataChanges({
                     ...blocks[idx],
-                    type: "text"
+                    type: "text",
+                    data: {
+                        ...blocks[idx].data,
+                        text
+                    }
                 })
                 await updateAPI(blockId, { type: "text" })
                 return;
@@ -601,7 +616,6 @@ export default function useEditor(pageId: number) {
     }
 
     function focusAt(blockId: string, offset: number) {
-        requestAnimationFrame(() => {
             const el = cursorRef.current.get(blockId)
 
             if (!el) return
@@ -621,7 +635,6 @@ export default function useEditor(pageId: number) {
 
             selection.removeAllRanges()
             selection.addRange(range)
-        })
     }
 
     async function createFirstBlock() {
@@ -730,6 +743,7 @@ export default function useEditor(pageId: number) {
         shortcuts.set("##", "heading2")
         shortcuts.set("###", "heading3")
         shortcuts.set("---", "divider")
+        shortcuts.set(">", "toggle")
 
         const data: Partial<{
             type: BlockType
