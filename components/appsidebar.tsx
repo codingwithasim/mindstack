@@ -23,7 +23,7 @@ export default function AppSideBar() {
     useEffect(() => {
         fetch("/api/pages").then(response => {
             response.json().then(pages => {
-                setPages(pages)
+                setPages(pages.filter(p => !p.parentPageId))
             })
         })
     }, [])

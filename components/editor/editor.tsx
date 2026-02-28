@@ -4,9 +4,9 @@ import { cn } from "@/lib/utils"
 import { createContext, useCallback, useEffect, useState } from "react"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
-import { Trash } from "lucide-react"
 import BlockRenderor from "./renderor"
 import { Block } from "./types"
+import PageBlock from "./blocks/pageblock"
 
 type EditorProps = {
     params: { id: number }
@@ -29,7 +29,6 @@ export default function Editor({ params }: EditorProps) {
 
     const handleFocus = useCallback((blockId: string) => {
         editor.setFocusedBlockId(blockId)
-        console.log(blockId);
     }, [editor.setFocusedBlockId])
 
     const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {
@@ -58,6 +57,7 @@ export default function Editor({ params }: EditorProps) {
             </header>
             <main
                 className="dark:bg-background max-w-[1024px] h-full m-auto select-text">
+                    {/* <PageBlock/> */}
                 {
                     editor.blocks.map((block, idx) => {
                         const listIndex = block.type === "ordered_list" ?

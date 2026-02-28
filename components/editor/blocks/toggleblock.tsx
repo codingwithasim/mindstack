@@ -4,7 +4,7 @@
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown, FoldVertical, UnfoldVertical } from "lucide-react";
 import TextWrapper, { TextWrapperProps } from "./textwrapper";
 import { Button } from "@/components/ui/button";
-import { useContext, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { EditorContext } from "../editor";
 import { Block } from "../types";
 import BlockRenderor, { BlockWrapper } from "../renderor";
@@ -57,6 +57,10 @@ export default function ToggleBlock(props: TextWrapperProps) {
         editor.createBlock(block)
     }
 
+    const handleFocus = useCallback((blockId: string) => {
+            editor.setFocusedBlockId(blockId)
+        }, [editor.setFocusedBlockId])
+
     return (
         <div className="flex flex-col w-full gap-2">
 
@@ -92,7 +96,7 @@ export default function ToggleBlock(props: TextWrapperProps) {
                                     listIndex={listIndex}
                                     focus={block.id === editor.focusedBlockId}
                                     onEnter={editor.handleEnter}
-                                    onFocus={editor.focusBlock}
+                                    onFocus={handleFocus}
                                     onBackspace={editor.handleBackspace}
                                     onChange={editor.handleDataChanges}
                                     data={block.data}

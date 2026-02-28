@@ -1,4 +1,4 @@
-import { Clipboard, Copy, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
+import { Clipboard, Copy, FileText, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { BlockComponentProps, BlockType } from "./types";
@@ -9,6 +9,7 @@ import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
 import ToggleBlock from "./blocks/toggleblock";
 import { toast } from "sonner";
+import PageBlock from "./blocks/pageblock";
 
 export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId?: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
     
@@ -61,6 +62,11 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
             icon: ListChevronsDownUpIcon,
             label: "Section",
             value: "toggle"
+        },
+        {
+            icon: FileText,
+            label: "Page",
+            value: "page"
         }
     ]
 
@@ -148,8 +154,6 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
 function BlockRenderor(props: BlockComponentProps) {
 
     const { type, id, onChange, block, onDelete, onDuplicate, onCopy } = props
-
-    
 
     const handleBlockTypeChange = (type: BlockType) => {
         if(onChange){
@@ -273,13 +277,18 @@ function BlockRenderor(props: BlockComponentProps) {
                     <Separator/>
                 </BlockWrapper>
             )
-
         case "toggle":
             return (
-                // <BlockWrapper
-                    // onTypeSelect={handleBlockTypeChange}>
                     <ToggleBlock {...rest}/>
-                // </BlockWrapper>
+            )
+        case "page":
+            return(
+                <BlockWrapper
+                    onItemSelect={handleItemClick}
+                    blockId={id}
+                    onTypeSelect={handleBlockTypeChange}>
+                    <PageBlock {...rest}/>
+                </BlockWrapper>
             )
 
         default:

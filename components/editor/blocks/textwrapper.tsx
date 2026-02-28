@@ -60,7 +60,7 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, tag = "div",
     return (
         <Editable
             value={draft}
-            onClick={() => { if (onFocus) onFocus(block.id) }}
+            onClick={() => { if (onFocus) onFocus(block.id); console.log("pare: ", block.parentBlockId) }}
             onChange={value => {
                 setDraft(value.toString())
             }}

@@ -105,3 +105,50 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         success: true
     })
 }
+
+export async function POST(req: NextRequest, {params}: {params: {id: string}}){
+
+    console.log("called this api");
+    
+    const { id } = await params
+    const parentPageId = Number(id)
+
+    if(Number.isNaN(parentPageId)){
+        return NextResponse.json(
+            {error: "Invalid parent page id"},
+            {status: 400}
+        );
+    }
+
+    let title = ""
+
+    let body;
+    try{
+        body = await req.json()
+    }catch(err){
+        console.log("No body provided");
+    }
+
+    if(body && title in body){
+        title = body.title
+    }
+
+    const now = new Date()
+
+    const result = await client
+        .insert(pages)
+        .values({
+            title,
+            parentPageId,
+            createdAt: now,
+            updatedAt: now
+    })
+
+    return NextResponse.json({
+        id: result.lastInsertRowid,
+        parentPageId,
+        title,
+        updatedAt: now,
+        createdAt: now
+    })
+}

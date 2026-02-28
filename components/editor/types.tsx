@@ -7,13 +7,15 @@ export type Block = {
         text: string
         checked?: boolean
         opened?: boolean
+        pageId?: number
+        startingIndex?: number
     }
     createdAt: number
     updatedAt: number
 }
 
 export type BlockType = "quote" | "text" | "heading1" | "heading2" | "heading3" | "ordered_list" | "bullet_list" | 
-    "check_list" | "divider" | "toggle"
+    "check_list" | "divider" | "toggle" | "page"
     
 
 export type BlockComponentProps = {

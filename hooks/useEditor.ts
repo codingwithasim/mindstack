@@ -45,22 +45,17 @@ export default function useEditor(pageId: number) {
                                 data: JSON.parse(b.data)
                             }
                         }))
-
                     }
                 }
                 )
             })
     }, [])
 
-    useEffect(()=> {
-        console.log(focusedBlockId);
-    }, [focusedBlockId])
-
     /**========================= Helper functions =========================== */
 
     function normalizeOrders(blocks: Block[]): Block[] {
         const sorted = [...blocks].sort(
-            (a, b) => Number(a.order) - Number(b.order)
+            (a, b) => parseFloat(a.order) - parseFloat(b.order)
         )
 
         return sorted.map((block, i) => ({
@@ -260,16 +255,38 @@ export default function useEditor(pageId: number) {
 
         if (e.key === "ArrowUp") {
             setFocusedBlockId(prevId => {
-                if (prevId === null) {
+
+                if (!prevId) {
                     return blocks.length > 0 ? blocks[0].id : prevId
                 }
 
                 const idx = blocks.findIndex(b => b.id === prevId)
 
                 let prevIndex: number;
+                let isClosedNestedBlock: boolean = false
 
                 for (prevIndex = idx - 1; prevIndex >= 0; prevIndex--) {
-                    if (blocks[prevIndex].type !== "divider") break
+                    const block = blocks[prevIndex]
+
+                    if (block.type === "divider") continue
+                    
+                    if(block.parentBlockId){
+                        console.log(block, isClosedNestedBlock);
+                        
+                        if(isClosedNestedBlock) continue
+                        const parentBlock = blocks.find(b => b.id === block.parentBlockId)
+
+                        if(!parentBlock) return prevId
+
+                        if(parentBlock.data.opened){
+                            break
+                        }
+
+                        isClosedNestedBlock = true
+                        continue
+                    }
+
+                    break
                 }
 
                 if (prevIndex === -1) return blocks[idx].id
@@ -295,9 +312,28 @@ export default function useEditor(pageId: number) {
                 if (blocks.length === idx + 1) return prevId
 
                 let nextIndex: number
+                let isClosedNestedBlock: boolean = false
 
                 for (nextIndex = idx + 1; nextIndex < blocks.length; nextIndex++) {
-                    if (blocks[nextIndex].type !== "divider") break
+                    const block = blocks[nextIndex]
+
+                    if (block.type === "divider") continue
+
+                    if(block.parentBlockId){
+                        if(isClosedNestedBlock) continue
+                        const parentBlock = blocks.find(b => b.id === block.parentBlockId)
+
+                        if(!parentBlock) return prevId
+
+                        if(parentBlock.data.opened){
+                            break
+                        }
+
+                        isClosedNestedBlock = true
+                        continue
+                    }
+
+                    break
                 }
 
                 if (nextIndex === blocks.length) return prevId
@@ -316,18 +352,15 @@ export default function useEditor(pageId: number) {
         if (e.key === "ArrowLeft") {
             setFocusedBlockId(prevId => {
 
+                
                 const idx = blocks.findIndex(b => b.id === prevId)
                 if (prevId === null || idx === 0) return prevId
 
-                
-
+            
                 const sel = window.getSelection()
                 if (!sel) return prevId
 
                 if (sel.anchorOffset !== 0) return prevId
-
-                console.log('Called Arrow Navigation');
-
 
                 let prevIndex: number
 
@@ -352,6 +385,8 @@ export default function useEditor(pageId: number) {
                 if (!sel) return prevId
 
                 const current = blocks[idx]
+
+                if(!current) return prevId
 
                 if (sel.anchorOffset !== current.data.text.length) return prevId
 
@@ -437,9 +472,10 @@ export default function useEditor(pageId: number) {
             if (isCursorAtEnd) {
 
                 if (current.data.opened) {
+
                     const orderBefore = parseFloat(current.order)
                     const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
-                    const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
+                    const newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
 
                     const newBlocks = insertBlock(blocks, {
                         id: crypto.randomUUID(),
@@ -453,14 +489,10 @@ export default function useEditor(pageId: number) {
                         updatedAt: Date.now()
                     })
 
-                    newBlocks[index] = { ...current, data: { ...current.data, opened: true } }
-
                     setBlocks(newBlocks)
                     setFocusedBlockId(newBlocks[index + 1].id)
 
                     await createBlockAPI(pageId, newBlocks[index + 1])
-                    await updateAPI(blockId, { data: { ...current.data, opened: true } })
-    
                     return
                 }
             }
@@ -470,7 +502,7 @@ export default function useEditor(pageId: number) {
         //Calculate new order for block
         const orderBefore = parseFloat(current.order)
         const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
-        const newOrder = ((orderBefore + orderAfter) / 2).toFixed(5)
+        const newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
 
         const beforeText: string = current.data.text.slice(0, cursorPos);
         const afterText: string = current.data.text.slice(cursorPos);
@@ -531,8 +563,38 @@ export default function useEditor(pageId: number) {
 
 
     const handleDataChanges = async (block: Block) => {
+
+        let data : {
+            id: number
+            title: string
+        }
+
+        if(block.type === "page"){
+            console.log("here");
+            
+            try{
+                const response = await fetch("/api/pages/" + pageId, {
+                    method: "POST"
+                })
+
+                data = await response.json()
+
+                console.log(data);
+            }catch(err){
+                console.log(err);
+                return
+            }
+            
+        }
+
         setBlocks(prev => prev.map(b => {
             if (b.id === block.id) {
+                if(data){
+                    block.data = {
+                        ...block.data,
+                        pageId: data.id
+                    }
+                }
                 return block
             }
             return b
@@ -579,6 +641,7 @@ export default function useEditor(pageId: number) {
         const prevBlock = blocks[prevIndex]
 
         const resolvedData = {
+            ...prevBlock.data,
             text: prevBlock.data.text + text
         }
 
@@ -675,13 +738,32 @@ export default function useEditor(pageId: number) {
 
         if (idx === -1) return 0
 
+        if(idx > 0){
+            if(blocks[idx-1].type !== "ordered_list" && blocks[idx].data.startingIndex)
+                return blocks[idx].data.startingIndex
+        }else{
+            if(blocks[idx].type === "ordered_list" && blocks[idx].data.startingIndex)
+                return blocks[idx].data.startingIndex
+        }
+
         let count = 1;
+        let countWithStartingIndex = 1
 
         if (blocks[idx].type !== "ordered_list") return 0
 
-        for (let i = idx - 1; i >= 0; i--) {
+        let i = idx - 1
+
+        for (; i >= 0; i--) {
             if (blocks[i].type !== "ordered_list" || (!isNested && blocks[i].parentBlockId)) break
-            count++
+            countWithStartingIndex += blocks[i].data.startingIndex ?? 1
+            count += 1
+        }
+
+        i++
+        
+        const b = blocks[i]
+        if(b.data.startingIndex && b.data.startingIndex > 1){
+            return b.data.startingIndex + count
         }
         return count
     }
@@ -751,21 +833,35 @@ export default function useEditor(pageId: number) {
                 text: string
                 checked?: boolean
                 opened?: boolean
+                startingIndex?: number
             }
         }> = {
             data: block.data,
             type: block.type
         }
 
-        const trimmed = text.trimEnd()
+        const trimmed:string = text.trimEnd()
 
-        if (!shortcuts.has(trimmed)) return
+        const match = trimmed.match(/^(\d+)\./)
 
-        if (data.data) {
-            data.data.text = ""
+        if(match){
+            const value = match[0]
+            data.type = "ordered_list"
+            if(data.data){
+                data.data.startingIndex = Number(match[1])
+            }
+        }else{
+            if (!shortcuts.has(trimmed)) return
+            if (data.data) {
+                data.data.text = ""
+            }
+
+            data.type = shortcuts.get(text.trimEnd())
         }
 
-        data.type = shortcuts.get(text.trimEnd())
+        
+
+        
 
         setBlocks(prev => prev.map(b => {
             if (b.id === block.id) {
