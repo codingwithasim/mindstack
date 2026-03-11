@@ -151,6 +151,7 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
     )
 }
 
+
 function BlockRenderor(props: BlockComponentProps) {
 
     const { type, id, onChange, block, onDelete, onDuplicate, onCopy } = props
@@ -202,12 +203,7 @@ function BlockRenderor(props: BlockComponentProps) {
     switch (type) {
         case "text":
             return (
-                <BlockWrapper
-                    onItemSelect={handleItemClick}
-                    blockId={id}
-                    onTypeSelect={handleBlockTypeChange}>
-                    <TextBlock {...rest} />
-                </BlockWrapper>
+                <TextBlock {...rest} />
             )
 
         case "heading1":

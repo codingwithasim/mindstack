@@ -2,16 +2,9 @@
 
 import { Block, BlockType } from "@/components/editor/types";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import useEvent from "./useEvent";
+import { toast } from "sonner";
 
-function useEvent<T extends (...args: any[]) => any>(handler: T): T {
-    const handlerRef = useRef(handler)
-
-    useLayoutEffect(() => {
-        handlerRef.current = handler
-    }, [handler])
-
-    return useCallback(((...args: any[]) => handlerRef.current(...args)) as T, [])
-}
 
 export default function useEditor(pageId: number) {
 
@@ -45,6 +38,9 @@ export default function useEditor(pageId: number) {
                                 data: JSON.parse(b.data)
                             }
                         }))
+                        console.log(data);
+                        
+
                     }
                 }
                 )
@@ -203,7 +199,7 @@ export default function useEditor(pageId: number) {
         return await res.json()
     }
 
-    const updateAPI = async (blockId: string, patch: { type?: string, blockOrder?: string, data?: object }) => {
+    const updateAPI = async (blockId: string, patch: { type?: string, blockOrder?: string, data?: object, parentBlockId?: string }) => {
 
         if (!patch || Object.entries(patch).length === 0) {
             throw new Error("No data was given to update")
@@ -271,12 +267,15 @@ export default function useEditor(pageId: number) {
                     if (block.type === "divider") continue
                     
                     if(block.parentBlockId){
-                        console.log(block, isClosedNestedBlock);
                         
                         if(isClosedNestedBlock) continue
                         const parentBlock = blocks.find(b => b.id === block.parentBlockId)
 
                         if(!parentBlock) return prevId
+
+                        if(parentBlock.type !== "toggle"){
+                            break
+                        }
 
                         if(parentBlock.data.opened){
                             break
@@ -324,6 +323,10 @@ export default function useEditor(pageId: number) {
                         const parentBlock = blocks.find(b => b.id === block.parentBlockId)
 
                         if(!parentBlock) return prevId
+
+                        if(parentBlock.type !== "toggle"){
+                            break
+                        }
 
                         if(parentBlock.data.opened){
                             break
@@ -411,7 +414,31 @@ export default function useEditor(pageId: number) {
         }
     }
 
+    const enterKeyRef = useRef<number>(null)
+    const counter = useRef<number>(0)
+
     const handleEnter = async (blockId: string, cursorPos: number, text?: string) => {
+
+        // if(!enterKeyRef.current){
+        //     enterKeyRef.current = Date.now()
+        //     console.log("Enter pressing started");
+        //     counter.current = 1
+        //     return
+        // }
+
+        // if(Date.now() - enterKeyRef.current > 100){
+        //     console.log("Pressing stopped with value", counter.current);
+        //     counter.current = 0
+        //     enterKeyRef.current = null
+        //     return
+        // }else{
+        //     counter.current++
+        //     enterKeyRef.current = Date.now()
+        //     return
+        // }
+
+
+
 
         const index = blocks.findIndex(b => b.id === blockId)
 
@@ -519,7 +546,6 @@ export default function useEditor(pageId: number) {
         setBlocks(newBlocks)
         setFocusedIndex(index + 1)
         setFocusedBlockId(newBlocks[index + 1].id)
-        console.log(newBlocks[index + 1].id);
         
 
         //Call API
@@ -878,6 +904,21 @@ export default function useEditor(pageId: number) {
             data: data.data
         })
     }
+    
+
+    const handleTab = async (blockId: string) => {
+        const idx = blocks.findIndex(b => b.id === blockId)
+
+        if(idx < 1) return //Block can not become a child
+
+        if(blocks[idx -1].type !== "text"){
+            toast.error("Can not be a child of type " + blocks[idx - 1].type)
+            return
+        }
+
+        updateBlock(blockId, {parentBlockId: blocks[idx - 1].id})
+        await updateAPI(blockId, { parentBlockId: blocks[idx - 1].id })
+    }
 
     const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
     const handleEnterEvent = useEvent(handleEnter)
@@ -892,6 +933,7 @@ export default function useEditor(pageId: number) {
     const dublicateBlockEvent = useEvent(dublicateBlock)
     const copyEvent = useEvent(copy)
     const handleSpaceEvent = useEvent(handleSpace)
+    const handleTabEvent = useEvent(handleTab)
 
     return {
         title,
@@ -912,7 +954,8 @@ export default function useEditor(pageId: number) {
         focusedBlockId,
         dublicateBlock: dublicateBlockEvent,
         copy: copyEvent,
-        onSpace: handleSpaceEvent
+        onSpace: handleSpaceEvent,
+        handleTab: handleTabEvent
     }
 }
 

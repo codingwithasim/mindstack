@@ -1,7 +1,7 @@
 "use client"
 
 import Editable from "@/components/ui/editable";
-import { HTMLAttributes, useCallback, useEffect, useRef, useState } from "react";
+import { HTMLAttributes, memo, useCallback, useEffect, useRef, useState } from "react";
 import { Block } from "../types";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,7 @@ export type TextWrapperProps = {
     onChange?: (block: Block) => void
     onFocus?: (blockId: string) => void
     onBackspace?: (id: string, cursorPos: number, text: string) => void
+    onTab?: (blockId: string) => void
     focus?: boolean
     block: Block
     tag?: string
@@ -23,15 +24,15 @@ export type TextWrapperProps = {
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
+function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
 
     const [draft, setDraft] = useState<string>(block.data.text)
     const inputRef = useRef<HTMLDivElement>(undefined)
     const { defaultValue, ...rest } = props
 
-    useEffect(() => {
-        console.log("re-rendering");
-    })
+    // useEffect(() => {
+    //     console.log("re-rendering block");
+    // })
 
     const commitChanges = useCallback(() => {
         if (!onChange) return
@@ -89,6 +90,14 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, tag = "div",
                     }
                 }
 
+                if(e.key === "Tab"){
+                    e.preventDefault()
+
+                    if(onTab){ 
+                        onTab(block.id)
+                    }
+                }
+
                 if (e.key === " ") {
 
                     if (!onSpace) return
@@ -112,4 +121,4 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, tag = "div",
     )
 }
 
-export default TextWrapper
+export default memo(TextWrapper)

@@ -52,7 +52,7 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
         )
     }
 
-    if(!(payload.type || payload.blockOrder || payload.data)){
+    if(!(payload.type || payload.blockOrder || payload.data || payload.parentBlockId)){
         return NextResponse.json(
             {error: "No data provided"}, {status: 400}
         )
@@ -64,21 +64,30 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
         )
     }
 
+    if(payload.parentBlockId && typeof payload.parentBlockId !== "string"){
+        return NextResponse.json(
+            {error: "Invalid parent block id"}, {status: 400}
+        )
+    }
+
     if(payload.blockOrder && !isValidOrder(payload.blockOrder)){
         return NextResponse.json(
             {error: "Invalid order"}, {status: 400}
         )
     }
+    
 
     /* ===================== Update blocks table ===================== */
 
     const blockUpdate: Partial<{
         blockOrder: string
         type: string
+        parentBlockId: string
         updatedAt: Date
     }> = {}
 
     if(payload.type) blockUpdate.type = payload.type
+    if(payload.parentBlockId) blockUpdate.parentBlockId = payload.parentBlockId
     if(payload.blockOrder) blockUpdate.blockOrder = Number(payload.blockOrder).toFixed(5)
 
     if(Object.keys(blockUpdate).length > 0){

@@ -84,6 +84,7 @@ export default function Editor({ params }: EditorProps) {
                                     onChange={handleChanges}
                                     data={block.data}
                                     onSpace={editor.onSpace}
+                                    onTab={editor.handleTab}
                                     registerRef={handleRegisterRef}
                                 />
                             </div>

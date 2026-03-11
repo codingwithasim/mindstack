@@ -30,6 +30,7 @@ export type BlockComponentProps = {
     onFocus: (blockId: string) => void
     onChange: (block: Block) => void
     onSpace?: (blockId: string, text: string) => void
+    onTab?: (blockId: string) => void
     data: { text: string}
     registerRef: (id: string, el: HTMLDivElement) => void
     onDelete?: (blockId: string) => void | Promise<void>
