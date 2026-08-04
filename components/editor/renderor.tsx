@@ -1,9 +1,9 @@
 import { Clipboard, Copy, FileText, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
-import { BlockComponentProps, BlockType } from "./types";
+import { Block, BlockComponentProps, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { memo, ReactNode, useEffect } from "react";
+import { memo, ReactNode, useEffect, useMemo } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
@@ -151,10 +151,18 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
     )
 }
 
+type RendererProps = {
+    childrenMap: Map<String, Block[]>
+    focusedBlockId: String | undefined
+    getNumberedListIndex(blocks: Block[], blockId: String): number
+    blocks: Block[]
+} & BlockComponentProps
 
-function BlockRenderor(props: BlockComponentProps) {
+function BlockRenderor(props: RendererProps) {
 
     const { type, id, onChange, block, onDelete, onDuplicate, onCopy } = props
+    
+    const children = props.childrenMap.get(props.id) ?? []
 
     const handleBlockTypeChange = (type: BlockType) => {
         if(onChange){
@@ -175,6 +183,35 @@ function BlockRenderor(props: BlockComponentProps) {
             })
         }
     }
+
+    const {listIndex, getNumberedListIndex, onDelete : s, onDuplicate: d, childrenMap: x, focusedBlockId: ss, ...rest} = props
+
+    const renderedChildren = useMemo(() => {
+        return children.map(childBlock => {
+            const listIndex =
+                childBlock.type === "ordered_list"
+                    ? getNumberedListIndex(props.blocks, childBlock.id)
+                    : undefined
+
+            return (
+                <MemoBlockRenderer
+                    key={childBlock.id}
+                    {...props}
+                    id={childBlock.id}
+                    block={childBlock}
+                    order={childBlock.order}
+                    type={childBlock.type}
+                    focus={childBlock.id === props.focusedBlockId}
+                    data={childBlock.data}
+                    listIndex={listIndex}
+                />
+            )
+        })
+    }, [
+        children,
+        props.focusedBlockId,
+        getNumberedListIndex
+    ])
 
     const handleItemClick = async (blockId: string, action: string) => {
         
@@ -198,7 +235,6 @@ function BlockRenderor(props: BlockComponentProps) {
         }
     }
 
-    const {listIndex, onDelete : s, onDuplicate: d, ...rest} = props
 
     switch (type) {
         case "text":
@@ -274,8 +310,11 @@ function BlockRenderor(props: BlockComponentProps) {
                 </BlockWrapper>
             )
         case "toggle":
+            
             return (
-                    <ToggleBlock {...rest}/>
+                    <ToggleBlock {...rest}>
+                        {renderedChildren}
+                    </ToggleBlock>
             )
         case "page":
             return(
@@ -293,3 +332,5 @@ function BlockRenderor(props: BlockComponentProps) {
 }
 
 export default memo(BlockRenderor)
+
+const MemoBlockRenderer = memo(BlockRenderor)

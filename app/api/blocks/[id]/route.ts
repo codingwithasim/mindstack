@@ -46,6 +46,9 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
 
     const payload = await req.json()
 
+    console.log(typeof payload);
+    
+
     if(!payload || typeof payload !== "object"){
         return NextResponse.json(
             {error: "Invalid payload"}, {status: 400}

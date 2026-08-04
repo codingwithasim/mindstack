@@ -112,14 +112,11 @@ export default function AppSideBar() {
                 </SidebarMenuButton>
             </SidebarHeader>
 
-            <SidebarContent className="overflow-hidden">
+            <SidebarContent className="overflow-hidden bg-background">
                 <SidebarGroup>
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <SearchCommand/>
-                            {/* <SidebarMenuButton>
-                                <Search /> Search
-                            </SidebarMenuButton> */}
                         </SidebarMenuItem>
 
                         <SidebarMenuItem>
@@ -146,10 +143,10 @@ export default function AppSideBar() {
                         {
                             pages.slice(0, 50).map(page => {
                                 return (
-                                    <SidebarMenuItem key={page.id} >
+                                    <SidebarMenuItem key={page.id}>
                                         <SidebarMenuButton asChild>
                                             <Link
-                                                className="text-gray-700 dark:text-gray-200 truncate group/page"
+                                                className="text-gray-700 transition-colors dark:text-gray-200 truncate group/page"
                                                 href={"/pages/" + page.id}>
                                                 <FileText /> {page.title ?? "New page"}
                                                 <DropdownMenu>

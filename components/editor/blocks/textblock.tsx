@@ -5,24 +5,23 @@ import TextWrapper, { TextWrapperProps } from "./textwrapper";
 import { Block } from "../types";
 import { EditorContext } from "../editor";
 import BlockRenderor, { BlockWrapper } from "../renderor";
-import useEvent from "@/hooks/useEvent";
 
 function TextBlock(props: TextWrapperProps) {
 
     const [children, setChildren] = useState<Block[]>([])
 
-    const { editor } = useContext(EditorContext)
+    // const { editor } = useContext(EditorContext)
 
 
     useEffect(() => {
-        console.log("re-rendering block");
+        console.log("re-rendering block from text-block");
     })
 
-    useEffect(() => {
-        if (!editor) return
+    // useEffect(() => {
+    //     if (!editor) return
 
-        setChildren(editor.blocks.filter(block => block.parentBlockId === props.block.id))
-    }, [editor.blocks])
+    //     setChildren(editor.state.blocks.filter(block => block.parentBlockId === props.block.id))
+    // }, [editor.state.blocks])
 
     const onEnter = props.onEnter ?? (() => {})
     const onFocus = props.onFocus ?? (() => {})
@@ -49,7 +48,7 @@ function TextBlock(props: TextWrapperProps) {
                         children.map((block) => {
 
                             const listIndex = block.type === "ordered_list" ?
-                                editor.getNumberedListIndex(children, block.id) : undefined
+                                editor.actions.getNumberedListIndex(children, block.id) : undefined
 
                             return (
                                 <BlockRenderor
@@ -60,16 +59,16 @@ function TextBlock(props: TextWrapperProps) {
                                     type={block.type}
                                     onTab={onTab}
                                     listIndex={listIndex}
-                                    focus={block.id === editor.focusedBlockId}
+                                    focus={block.id === editor.state.focusedBlockId}
                                     onEnter={onEnter}
                                     onFocus={onFocus}
                                     onBackspace={onBackspace}
                                     onChange={onChange}
                                     data={block.data}
                                     registerRef={registerRef}
-                                    onDelete={editor.deleteBlock}
-                                    onDuplicate={editor.dublicateBlock}
-                                    onCopy={editor.copy}
+                                    onDelete={editor.actions.deleteBlock}
+                                    onDuplicate={editor.actions.dublicateBlock}
+                                    onCopy={editor.actions.copy}
                                     onSpace={onSpace}
                                 />
                             )

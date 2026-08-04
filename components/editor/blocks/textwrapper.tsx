@@ -30,10 +30,6 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
     const inputRef = useRef<HTMLDivElement>(undefined)
     const { defaultValue, ...rest } = props
 
-    // useEffect(() => {
-    //     console.log("re-rendering block");
-    // })
-
     const commitChanges = useCallback(() => {
         if (!onChange) return
         if (!inputRef.current) return

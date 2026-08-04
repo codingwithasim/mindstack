@@ -36,6 +36,7 @@ export type BlockComponentProps = {
     onDelete?: (blockId: string) => void | Promise<void>
     onDuplicate?: (blockId: string) => void | Promise<void>
     onCopy?: (blockId: string) => void | Promise<void>
+    
 }
 
 export type Page = {

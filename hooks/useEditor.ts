@@ -1,7 +1,7 @@
 "use client"
 
 import { Block, BlockType } from "@/components/editor/types";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import useEvent from "./useEvent";
 import { toast } from "sonner";
 
@@ -248,7 +248,6 @@ export default function useEditor(pageId: number) {
 
         if (!blocks || blocks.length === 0) return
 
-
         if (e.key === "ArrowUp") {
             setFocusedBlockId(prevId => {
 
@@ -463,6 +462,7 @@ export default function useEditor(pageId: number) {
         }
 
         if (current.type === "toggle") {
+
             const isCursorAtStart = cursorPos === 0
             const isCursorAtEnd = cursorPos === text?.length
             const isEmpty = text?.length === 0
@@ -499,8 +499,16 @@ export default function useEditor(pageId: number) {
             if (isCursorAtEnd) {
 
                 if (current.data.opened) {
+                    let orderBefore = parseFloat(current.order)
 
-                    const orderBefore = parseFloat(current.order)
+                    for(let i = index; i < blocks.length; i++){
+                        if(!blocks[i].parentBlockId){
+                            console.log(blocks[i].data)
+                            break
+                        }
+                    }
+
+
                     const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
                     const newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
 
@@ -920,6 +928,22 @@ export default function useEditor(pageId: number) {
         await updateAPI(blockId, { parentBlockId: blocks[idx - 1].id })
     }
 
+    const childrenMap = useMemo(()=> {
+        const map = new Map<String, Block[]>()
+
+        for(const block of blocks){
+           if(!block.parentBlockId){
+            continue;
+           }
+
+           const children = map.get(block.parentBlockId) ?? []
+           children.push(block)
+           map.set(block.parentBlockId, children)
+        }
+
+        return map
+    }, [blocks])
+
     const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
     const handleEnterEvent = useEvent(handleEnter)
     const handleDeleteBlockEvent = useEvent(handleDeleteBlock)
@@ -936,27 +960,33 @@ export default function useEditor(pageId: number) {
     const handleTabEvent = useEvent(handleTab)
 
     return {
-        title,
-        blocks,
-        currentIndex: focusedIndex,
-        setIndex: setFocusedIndex,
-        handleArrowNavigation: handleArrowNavigationEvent,
-        handleEnter: handleEnterEvent,
-        deleteBlock: handleDeleteBlockEvent,
-        handleDataChanges: handleDataChangesEvent,
-        handleBackspace: handleBackspaceEvent,
-        registerRef: registerRefEvent,
-        renamePageAPI: renamePageAPIEvent,
-        createFirstBlock: createFirstBlockEvent,
-        getNumberedListIndex: getNumberedListIndexEvent,
-        createBlock: createBlockEvent,
-        setFocusedBlockId,
-        focusedBlockId,
-        dublicateBlock: dublicateBlockEvent,
-        copy: copyEvent,
-        onSpace: handleSpaceEvent,
-        handleTab: handleTabEvent
+        state: {
+            title,
+            blocks,
+            currentIndex: focusedIndex,
+            focusedBlockId,
+            childrenMap
+        },
+
+        actions: {
+            setIndex: setFocusedIndex,
+            setFocusedBlockId,
+
+            dublicateBlock: dublicateBlockEvent,
+            copy: copyEvent,
+            onSpace: handleSpaceEvent,
+            indentBlock: handleTabEvent,
+            createBlock: createBlockEvent,
+            handleArrowNavigation: handleArrowNavigationEvent,
+            getNumberedListIndex: getNumberedListIndexEvent,
+            createFirstBlock: createFirstBlockEvent,
+            renamePageAPI: renamePageAPIEvent,
+            registerRef: registerRefEvent,
+            handleBackspace: handleBackspaceEvent,
+            handleDataChanges: handleDataChangesEvent,
+            deleteBlock: handleDeleteBlockEvent,
+            handleEnter: handleEnterEvent,
+        }
     }
 }
 
-//Lines: 329

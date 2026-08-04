@@ -1,65 +1,26 @@
 "use client"
 
 
-import { ChevronDown, ChevronsDownUp, ChevronsUpDown, FoldVertical, UnfoldVertical } from "lucide-react";
+import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import TextWrapper, { TextWrapperProps } from "./textwrapper";
-import { Button } from "@/components/ui/button";
-import { useCallback, useContext, useEffect, useState } from "react";
-import { EditorContext } from "../editor";
-import { Block } from "../types";
-import BlockRenderor, { BlockWrapper } from "../renderor";
+import React, { memo, useCallback, useContext, useEffect, useState } from "react";
+import { BlockWrapper } from "../renderor";
 
-export default function ToggleBlock(props: TextWrapperProps) {
+type ToggleProps = TextWrapperProps & {
+    children: React.ReactNode
+}
 
-    const id: string = props.block.id
+function ToggleBlock({children, ...props}: ToggleProps) {
 
-
-    const { editor } = useContext(EditorContext)
-
-    const [subBlocks, setSubBlocks] = useState<Block[]>()
+    useEffect(()=> {
+        console.log("rerender from toggle ");    
+    })
 
     const handleStateChange = (opened: boolean) => {
         if(!props.onChange) return
         
         props.onChange({...props.block, data: { ...props.block.data, opened}})
     }
-
-    useEffect(() => {
-        setSubBlocks(editor.blocks.filter(b => {
-            return id === b.parentBlockId
-        }))
-    }, [editor.blocks])
-
-    const createBlock = () => {
-
-        const idx = editor.blocks.findIndex(b => b.id == id)
-
-        if (idx === -1) return
-
-        const prevOrder = parseFloat(props.block.order) || 0
-        const nextOrder = editor.blocks[idx + 1] ? parseFloat(editor.blocks[idx + 1].order) : prevOrder + 1
-
-        let newOrderNum = ((prevOrder + nextOrder) / 2)
-
-        if (newOrderNum === prevOrder || newOrderNum === nextOrder) {
-            newOrderNum += 0.000001
-        }
-
-        const newOrder = newOrderNum.toFixed(12)
-
-        const block: Omit<Block, "id" | "createdAt" | "updatedAt"> = {
-            parentBlockId: id,
-            order: newOrder,
-            data: { text: "" },
-            type: "text"
-        }
-
-        editor.createBlock(block)
-    }
-
-    const handleFocus = useCallback((blockId: string) => {
-            editor.setFocusedBlockId(blockId)
-        }, [editor.setFocusedBlockId])
 
     return (
         <div className="flex flex-col w-full gap-2">
@@ -78,46 +39,12 @@ export default function ToggleBlock(props: TextWrapperProps) {
 
             {/* <div className="flex flex-col pl-4 w-full before:left-3 before:absolute before:text-gray-300 before:content[''] before:w-px before:h-[calc(100%-10px)] before:top-0  before:border-l relative"> */}
             <div className="flex flex-col pl-4 w-full transition-all pb-2">
-
                 {
-                    props.block.data.opened &&
-                        subBlocks?.length ? subBlocks.map((block) => {
-
-                            const listIndex = block.type === "ordered_list" ?
-                                editor.getNumberedListIndex(subBlocks, block.id) : undefined
-
-                            return (
-                                <BlockRenderor
-                                    key={block.id}
-                                    id={block.id}
-                                    block={block}
-                                    order={block.order}
-                                    type={block.type}
-                                    listIndex={listIndex}
-                                    focus={block.id === editor.focusedBlockId}
-                                    onEnter={editor.handleEnter}
-                                    onFocus={handleFocus}
-                                    onBackspace={editor.handleBackspace}
-                                    onChange={editor.handleDataChanges}
-                                    data={block.data}
-                                    registerRef={editor.registerRef}
-                                    onDelete={editor.deleteBlock}
-                                    onDuplicate={editor.dublicateBlock}
-                                    onCopy={editor.copy}
-                                    onSpace={props.onSpace}
-                                />
-                            )
-                        }) :
-                        props.block.data.opened &&
-                        <Button
-                            variant={"secondary"}
-                            className="bg-transparent"
-                            onClick={createBlock}
-                        >Empty toggle. Click to add a block</Button>
+                    props.block.data.opened && children
                 }
-
-
             </div>
         </div>
     )
 }
+
+export default memo(ToggleBlock)

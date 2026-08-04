@@ -6,7 +6,6 @@ import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
 import BlockRenderor from "./renderor"
 import { Block } from "./types"
-import PageBlock from "./blocks/pageblock"
 
 type EditorProps = {
     params: { id: number }
@@ -19,25 +18,25 @@ export default function Editor({ params }: EditorProps) {
     const editor = useEditor(params.id)
 
     useEffect(() => {
-        const handler = editor.handleArrowNavigation
+        const handler = editor.actions.handleArrowNavigation
         document.addEventListener("keydown", handler)
-        
-        return () => document.removeEventListener("keydown", handler)
-    }, [editor.blocks])
 
-    const handleEnter = useCallback(editor.handleEnter, [editor.handleEnter])
+        return () => document.removeEventListener("keydown", handler)
+    }, [editor.state.blocks])
+
+    const handleEnter = useCallback(editor.actions.handleEnter, [editor.actions.handleEnter])
 
     const handleFocus = useCallback((blockId: string) => {
-        editor.setFocusedBlockId(blockId)
-    }, [editor.setFocusedBlockId])
+        editor.actions.setFocusedBlockId(blockId)
+    }, [editor.actions.setFocusedBlockId])
 
     const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {
-        editor.registerRef(id, el)
-    }, [editor.registerRef])
+        editor.actions.registerRef(id, el)
+    }, [editor.actions.registerRef])
 
     const handleChanges = useCallback((block: Block) => {
-        editor.handleDataChanges(block)
-    }, [editor.handleDataChanges])
+        editor.actions.handleDataChanges(block)
+    }, [editor.actions.handleDataChanges])
                                     
     return (
         <EditorContext value={{editor}}>
@@ -45,26 +44,27 @@ export default function Editor({ params }: EditorProps) {
             <header className="pt-30 pb-4 pl-6 max-w-[1024px] m-auto">
                 <Editable
                     tag="h1"
-                    onBlur={e => editor.renamePageAPI(e.currentTarget.textContent)  }
-                    value={editor.title}
-                    requestFocus={editor.title.length == 0}
+                    onBlur={e => editor.actions.renamePageAPI(e.currentTarget.textContent)  }
+                    value={editor.state.title}
+                    requestFocus={editor.state.title.length == 0}
                     onKeyDown={e => {
                         if(e.key === "Enter"){
-                            editor.createFirstBlock()
+                            editor.actions.createFirstBlock()
                         }
                     }}
-                    className={cn("text-3xl font-bold", editor.title.length && "text-primary")}/>
+                    className={cn("text-3xl font-bold", editor.state.title.length && "text-primary")}/>
             </header>
             <main
                 className="dark:bg-background max-w-[1024px] h-full m-auto select-text">
                     {/* <PageBlock/> */}
                 {
-                    editor.blocks.map((block, idx) => {
+                    editor.state.blocks.map((block, idx) => {
                         const listIndex = block.type === "ordered_list" ?
-                            editor.getNumberedListIndex(editor.blocks, block.id) :
+                            editor.actions.getNumberedListIndex(editor.state.blocks, block.id) :
                             undefined
 
                         if(block.parentBlockId) return null
+
 
                         return (
                             <div className="flex" key={block.id}>
@@ -73,19 +73,23 @@ export default function Editor({ params }: EditorProps) {
                                     block={block}
                                     order={block.order}
                                     type={block.type}
+                                    blocks={editor.state.blocks}
                                     listIndex={listIndex}
-                                    focus={block.id === editor.focusedBlockId}
+                                    focus={block.id === editor.state.focusedBlockId}
                                     onEnter={handleEnter}
-                                    onDelete={editor.deleteBlock}
-                                    onCopy={editor.copy}
-                                    onDuplicate={editor.dublicateBlock}
+                                    onDelete={editor.actions.deleteBlock}
+                                    onCopy={editor.actions.copy}
+                                    onDuplicate={editor.actions.dublicateBlock}
                                     onFocus={handleFocus}
-                                    onBackspace={editor.handleBackspace}
+                                    onBackspace={editor.actions.handleBackspace}
                                     onChange={handleChanges}
                                     data={block.data}
-                                    onSpace={editor.onSpace}
-                                    onTab={editor.handleTab}
+                                    onSpace={editor.actions.onSpace}
+                                    onTab={editor.actions.indentBlock}
                                     registerRef={handleRegisterRef}
+                                    childrenMap={editor.state.childrenMap}
+                                    focusedBlockId={editor.state.focusedBlockId}
+                                    getNumberedListIndex={editor.actions.getNumberedListIndex}
                                 />
                             </div>
                         )
