@@ -79,8 +79,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
 
     const defaultClasses = "py-1 outline-none before:absolute before:h-full before:left-0" +
         "before:top-0 before:pointer-events-none before:text-placeholder empty:before:content-[attr(data-placeholder)]"
-
-    
+        
     return (
         <Tag
             className={cn(defaultClasses , className, "before:text-placeholder")}

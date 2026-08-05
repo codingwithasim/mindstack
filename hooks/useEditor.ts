@@ -11,7 +11,7 @@ export default function useEditor(pageId: number) {
     const [title, setTitle] = useState<string>("")
     const [blocks, setBlocks] = useState<Block[]>([]);
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
-    const [focusedBlockId, setFocusedBlockId] = useState<String>()
+    const [focusedBlockId, setFocusedBlockId] = useState<string>()
     const cursorRef = useRef<Map<string, HTMLDivElement>>(new Map())
 
 
@@ -437,8 +437,6 @@ export default function useEditor(pageId: number) {
         // }
 
 
-
-
         const index = blocks.findIndex(b => b.id === blockId)
 
         if (index === -1) return
@@ -696,17 +694,12 @@ export default function useEditor(pageId: number) {
             return updates
         })
 
-        console.log(resolvedData);
-
-
         setFocusedIndex(prevIndex)
         setFocusedBlockId(blocks[prevIndex].id)
 
         const mergedLength: number = blocks[prevIndex].data.text.length ?? 0
 
         focusAt(blocks[prevIndex].id, mergedLength)
-
-        console.log(resolvedData);
 
         await updateAPI(blocks[prevIndex].id, { data: resolvedData })
         await deleteBlockAPI(blockId)
@@ -802,7 +795,7 @@ export default function useEditor(pageId: number) {
         return count
     }
 
-    const dublicateBlock = async (blockId: string) => {
+    const duplicateBlock = async (blockId: string) => {
         if (!blockId || typeof blockId !== "string") return
 
         const idx = blocks.findIndex(block => blockId === block.id)
@@ -929,7 +922,7 @@ export default function useEditor(pageId: number) {
     }
 
     const childrenMap = useMemo(()=> {
-        const map = new Map<String, Block[]>()
+        const map = new Map<string, Block[]>()
 
         for(const block of blocks){
            if(!block.parentBlockId){
@@ -954,7 +947,7 @@ export default function useEditor(pageId: number) {
     const createFirstBlockEvent = useEvent(createFirstBlock)
     const getNumberedListIndexEvent = useEvent(getNumberedListIndex)
     const createBlockEvent = useEvent(createBlock)
-    const dublicateBlockEvent = useEvent(dublicateBlock)
+    const duplicateBlockEvent = useEvent(duplicateBlock)
     const copyEvent = useEvent(copy)
     const handleSpaceEvent = useEvent(handleSpace)
     const handleTabEvent = useEvent(handleTab)
@@ -972,7 +965,7 @@ export default function useEditor(pageId: number) {
             setIndex: setFocusedIndex,
             setFocusedBlockId,
 
-            dublicateBlock: dublicateBlockEvent,
+            duplicateBlock: duplicateBlockEvent,
             copy: copyEvent,
             onSpace: handleSpaceEvent,
             indentBlock: handleTabEvent,

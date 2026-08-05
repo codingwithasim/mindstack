@@ -1,9 +1,9 @@
 import { Clipboard, Copy, FileText, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
-import { Block, BlockComponentProps, BlockType } from "./types";
+import { Block, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { memo, ReactNode, useEffect, useMemo } from "react";
+import { memo, ReactNode, useMemo } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
@@ -151,27 +151,46 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
     )
 }
 
-type RendererProps = {
-    childrenMap: Map<String, Block[]>
-    focusedBlockId: String | undefined
-    getNumberedListIndex(blocks: Block[], blockId: String): number
-    blocks: Block[]
-} & BlockComponentProps
+type BlockRendererProps = {
+    block: Block
+    focus: boolean
+    listIndex?: number
 
-function BlockRenderor(props: RendererProps) {
+    state: {
+        blocks: Block[]
+        childrenMap: Map<string, Block[]>
+        focusedBlockId?: string
+        currentIndex: number | null
+    }
 
-    const { type, id, onChange, block, onDelete, onDuplicate, onCopy } = props
-    
-    const children = props.childrenMap.get(props.id) ?? []
+    actions: {
+        onEnter: (blockId: string, cursorPos: number, text?: string) => void
+        onBackspace: (blockId: string, cursorPos: number, text: string) => void
+        onBlockFocus: (blockId: string) => void
+        onChange?: (block: Block) => void
+        onSpace?: (blockId: string, text: string) => void
+        onTab?: (blockId: string) => void
+        registerRef: (id: string, el: HTMLDivElement) => void
+        onDelete?: (blockId: string) => void | Promise<void>
+        onDuplicate?: (blockId: string) => void | Promise<void>
+        onCopy?: (blockId: string) => void | Promise<void>
+        getNumberedListIndex(blocks: Block[], blockId: String): number
+    }
+}
+
+function BlockRenderor(props: BlockRendererProps) {
+
+    const children = props.state.childrenMap.get(props.block.id) ?? []
 
     const handleBlockTypeChange = (type: BlockType) => {
-        if(onChange){
-            onChange({
-                ...block,
+        
+        if(props.actions.onChange){
+            props.actions.onChange({
+                ...props.block,
                 type
             })
 
-            fetch("/api/blocks/" + id, {
+            fetch("/api/blocks/" + props.block.id, {
                 method: "PATCH",
                 body: JSON.stringify({
                     type
@@ -184,62 +203,67 @@ function BlockRenderor(props: RendererProps) {
         }
     }
 
-    const {listIndex, getNumberedListIndex, onDelete : s, onDuplicate: d, childrenMap: x, focusedBlockId: ss, ...rest} = props
-
     const renderedChildren = useMemo(() => {
         return children.map(childBlock => {
             const listIndex =
                 childBlock.type === "ordered_list"
-                    ? getNumberedListIndex(props.blocks, childBlock.id)
+                    ? props.actions.getNumberedListIndex(props.state.blocks, childBlock.id)
                     : undefined
 
             return (
                 <MemoBlockRenderer
                     key={childBlock.id}
                     {...props}
-                    id={childBlock.id}
                     block={childBlock}
-                    order={childBlock.order}
-                    type={childBlock.type}
-                    focus={childBlock.id === props.focusedBlockId}
-                    data={childBlock.data}
+                    focus={childBlock.id === props.state.focusedBlockId}
                     listIndex={listIndex}
                 />
             )
         })
     }, [
         children,
-        props.focusedBlockId,
-        getNumberedListIndex
+        props.state.focusedBlockId,
+        props.state.currentIndex,
+        props.actions.getNumberedListIndex
     ])
 
     const handleItemClick = async (blockId: string, action: string) => {
         
         switch(action){
             case "delete":
-                if (onDelete) {
-                    await onDelete(blockId)
+                if (props.actions.onDelete) {
+                    await props.actions.onDelete(blockId)
                 }
                 break;
             case "duplicate":
-                if (onDuplicate) {
-                    await onDuplicate(blockId)
+                if (props.actions.onDuplicate) {
+                    await props.actions.onDuplicate(blockId)
                 }
                 break;
             case "copy":
-                if (onCopy) {
-                    await onCopy(blockId)
+                if (props.actions.onCopy) {
+                    await props.actions.onCopy(blockId)
                     toast.success("Copied to Clipboard")
                 }
                 break;
         }
     }
 
+    const {onDelete, onDuplicate, getNumberedListIndex, onCopy, ...actions} = {...props.actions}
 
-    switch (type) {
+    switch (props.block.type) {
         case "text":
             return (
-                <TextBlock {...rest} />
+                <BlockWrapper
+                    blockId={props.block.id}
+                    onTypeSelect={handleBlockTypeChange}
+                    onItemSelect={handleItemClick}>
+                    <TextBlock 
+                        block={props.block}
+                        focus={props.focus}
+                        {...actions}
+                    />
+                </BlockWrapper>
             )
 
         case "heading1":
@@ -248,63 +272,74 @@ function BlockRenderor(props: RendererProps) {
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
+
                     <HeadingBlock
-                        placeholder={"Heading " + Number(type.at(-1))}
-                        level={Number(type.at(-1))} {...rest} />
+                        placeholder={"Heading " + Number(props.block.type.at(-1))}
+                        block={props.block}
+                        focus={props.focus}
+                        level={Number(props.block.type.at(-1))} {...actions} />
                 </BlockWrapper>
             )
         case "quote":
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
                     <QuoteBlock
                         placeholder="Empty quote"
-                        {...rest} />
+                        block={props.block}
+                        focus={props.focus}
+                        {...actions} />
                 </BlockWrapper>
             )
         case "ordered_list":
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
-                        index={listIndex}
+                        index={props.listIndex}
+                        block={props.block}
+                        focus={props.focus}
                         placeholder="List"
-                        listType="ordered" {...rest} />
+                        listType="ordered" {...actions} />
                 </BlockWrapper>
             )
         case "bullet_list":
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         placeholder="List"
-                        listType="unordered" {...rest} />
+                        block={props.block}
+                        focus={props.focus}
+                        listType="unordered" {...actions} />
                 </BlockWrapper>
             )
         case "check_list":
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
                     <ListBlock
                         placeholder="To-do"
-                        listType="todo" {...rest} />
+                        block={props.block}
+                        focus={props.focus}
+                        listType="todo" {...actions} />
                 </BlockWrapper>
             )
         case "divider":
             return (
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
                     <Separator/>
                 </BlockWrapper>
@@ -312,7 +347,10 @@ function BlockRenderor(props: RendererProps) {
         case "toggle":
             
             return (
-                    <ToggleBlock {...rest}>
+                    <ToggleBlock
+                        block={props.block}
+                        focus={props.focus}
+                        {...actions}>
                         {renderedChildren}
                     </ToggleBlock>
             )
@@ -320,9 +358,15 @@ function BlockRenderor(props: RendererProps) {
             return(
                 <BlockWrapper
                     onItemSelect={handleItemClick}
-                    blockId={id}
+                    blockId={props.block.id}
                     onTypeSelect={handleBlockTypeChange}>
-                    <PageBlock {...rest}/>
+                    <PageBlock 
+                        onCopy={props.actions.onCopy}
+                        onFocus={props.actions.onBlockFocus}
+                        onDelete={props.actions.onDelete}
+                        onChange={props.actions.onChange}
+                        block={props.block}
+                        {...actions}/>
                 </BlockWrapper>
             )
 

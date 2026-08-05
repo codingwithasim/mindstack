@@ -6,13 +6,9 @@ import { Block } from "../types";
 import { cn } from "@/lib/utils";
 
 export type TextWrapperProps = {
-    id: string
-    order: string
-    data: { text: string }
-    parentBlockId?: number
     onEnter?: (currentBlock: string, cursorPos: number, text?: string) => void
     onChange?: (block: Block) => void
-    onFocus?: (blockId: string) => void
+    onBlockFocus?: (blockId: string) => void
     onBackspace?: (id: string, cursorPos: number, text: string) => void
     onTab?: (blockId: string) => void
     focus?: boolean
@@ -24,11 +20,12 @@ export type TextWrapperProps = {
 } & Omit<HTMLAttributes<HTMLDivElement>, "id" | "onChange">
 
 
-function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag = "div", block, focus = false, onFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
+function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "div", block, focus = false, onBlockFocus, registerRef, onBackspace, ...props }: TextWrapperProps) {
 
     const [draft, setDraft] = useState<string>(block.data.text)
     const inputRef = useRef<HTMLDivElement>(undefined)
     const { defaultValue, ...rest } = props
+
 
     const commitChanges = useCallback(() => {
         if (!onChange) return
@@ -50,6 +47,10 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
         })
     }, [inputRef.current, block.data.text])
 
+    const handleFocus = useCallback(() => {
+        onBlockFocus?.(block.id);
+    }, [block.id, onBlockFocus]);
+
     useEffect(() => {
         setDraft(block.data.text)
     }, [block.id, block])
@@ -57,7 +58,7 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
     return (
         <Editable
             value={draft}
-            onClick={() => { if (onFocus) onFocus(block.id); console.log("pare: ", block.parentBlockId) }}
+            onFocus={handleFocus}
             onChange={value => {
                 setDraft(value.toString())
             }}
@@ -67,7 +68,7 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
             placeholder={placeholder}
             className={cn("w-full", props.className)}
             registerRef={(el) => {
-                if (registerRef) registerRef(id, el)
+                if (registerRef) registerRef(block.id, el)
                 if (!inputRef.current) {
                     inputRef.current = el
                 }
@@ -77,19 +78,21 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
                     e.preventDefault()
 
                     if (onEnter) {
+
+
                         const selection = window.getSelection()
                         setDraft(prev => prev.slice(0, selection?.anchorOffset ?? prev.length))
 
                         commitChanges()
 
-                        onEnter(id, selection?.anchorOffset ?? -1, draft)
+                        onEnter(block.id, selection?.anchorOffset ?? -1, draft)
                     }
                 }
 
-                if(e.key === "Tab"){
+                if (e.key === "Tab") {
                     e.preventDefault()
 
-                    if(onTab){ 
+                    if (onTab) {
                         onTab(block.id)
                     }
                 }
@@ -104,12 +107,12 @@ function TextWrapper({ id, onChange, placeholder, onSpace, onEnter, onTab, tag =
 
                 if (e.key === "Backspace") {
 
-                    if(window.getSelection()?.anchorOffset == 0){
+                    if (window.getSelection()?.anchorOffset == 0) {
                         e.preventDefault()
                     }
 
                     const text = inputRef.current?.textContent ?? draft
-                    if (onBackspace) onBackspace(id, window.getSelection()?.anchorOffset ?? -1, text)
+                    if (onBackspace) onBackspace(block.id, window.getSelection()?.anchorOffset ?? -1, text)
                 }
             }}
             {...rest}
