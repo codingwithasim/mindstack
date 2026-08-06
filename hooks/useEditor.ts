@@ -248,7 +248,11 @@ export default function useEditor(pageId: number) {
 
         if (!blocks || blocks.length === 0) return
 
-        if (e.key === "ArrowUp") {
+        const key: string = e.key
+
+        
+
+        if (key === "ArrowUp") {
             setFocusedBlockId(prevId => {
 
                 if (!prevId) {
@@ -301,7 +305,7 @@ export default function useEditor(pageId: number) {
             )
         }
 
-        if (e.key === "ArrowDown") {
+        if (key === "ArrowDown") {
             setFocusedBlockId(prevId => {
                 if (prevId === null) return blocks[0].id
 
@@ -351,7 +355,7 @@ export default function useEditor(pageId: number) {
             })
         }
 
-        if (e.key === "ArrowLeft") {
+        if (key === "ArrowLeft") {
             setFocusedBlockId(prevId => {
 
                 
@@ -377,7 +381,7 @@ export default function useEditor(pageId: number) {
 
         }
 
-        if (e.key === "ArrowRight") {
+        if (key === "ArrowRight") {
             setFocusedBlockId(prevId => {
 
                 const idx = blocks.findIndex(b => b.id === prevId)
@@ -744,7 +748,7 @@ export default function useEditor(pageId: number) {
         await createBlockAPI(pageId, block)
     }
 
-    async function createBlock(data: Omit<Block, "id" | "updatedOn" | "createdOn">) {
+    async function createBlock(data: Omit<Block, "id" | "updatedAt" | "createdAt">) {
         const block: Block = {
             ...data,
             id: crypto.randomUUID(),
@@ -754,7 +758,7 @@ export default function useEditor(pageId: number) {
 
         setBlocks(prev => insertBlock(blocks, block))
 
-        await createBlockAPI(pageId, block)
+        // await createBlockAPI(pageId, block)
     }
 
     const getNumberedListIndex = (blocks: Block[], blockId: string) => {

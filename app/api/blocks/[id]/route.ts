@@ -118,6 +118,8 @@ export async function PATCH(req: NextRequest, {params}: { params: {id: string}})
         data: payload.data ?? undefined
     })
 }
+
+
 /**Checks if order is correct*/
 export function isValidOrder(order: unknown): boolean {
     if(typeof order !== "string") return false

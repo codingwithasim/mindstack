@@ -107,8 +107,6 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 }
 
 export async function POST(req: NextRequest, {params}: {params: {id: string}}){
-
-    console.log("called this api");
     
     const { id } = await params
     const parentPageId = Number(id)
