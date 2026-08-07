@@ -6,7 +6,7 @@ type Block = {
     id: string
     type: string
     parentBlockId?: string
-    blockOrder: string
+    order: string
     data: Record<string, unknown>
 }
 
@@ -32,6 +32,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     const payload: BatchPayload = await request.json()
 
+    console.log(payload);
+    
     if (!Array.isArray(payload.create)) {
         return NextResponse.json(
             { message: "'create' must of an array" },
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             id: block.id,
             pageId,
             type: block.type,
-            blockOrder: block.blockOrder,
+            blockOrder: block.order,
             parentBlockId: block.parentBlockId ?? null,
             createdAt: currentTimestamp,
             updatedAt: currentTimestamp
@@ -67,9 +69,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     ))
 
 
-    await client.transaction(async tx => {
-        await tx.insert(blocks).values(blockRows)
-        await tx.insert(blockData).values(blockDataRows)
+    client.transaction(tx => {
+        tx.insert(blocks).values(blockRows).run()
+        tx.insert(blockData).values(blockDataRows).run()
     })
 
     return NextResponse.json({

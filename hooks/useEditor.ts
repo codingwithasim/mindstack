@@ -250,7 +250,61 @@ export default function useEditor(pageId: number) {
 
         const key: string = e.key
 
-        
+        if(e.ctrlKey){
+            if(key === "v"){
+                e.preventDefault()
+
+                navigator.clipboard.readText().then(text => {
+                    const lines = text.split("\n")
+                    
+                    if(!focusedBlockId) return
+
+                    const currentBlockIndex = blocks.findIndex(b => b.id === focusedBlockId)
+
+                    const currentBlock = blocks[currentBlockIndex]
+                    const nextBlock = blocks[currentBlockIndex + 1]
+
+                    const orderBefore = parseFloat(currentBlock.order)
+                    const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
+                    let newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
+
+                    
+                    let newBlocks = []
+                    const currentTimestamp = Date.now()
+
+                    let i = 0;
+
+                    for(; i < lines.length; i++){
+                        const newBlock: Block = {
+                            id: crypto.randomUUID(),
+                            type: "text",
+                            order: newOrder,
+                            data: {text: lines[i]},
+                            parentBlockId: null,
+                            createdAt: currentTimestamp,
+                            updatedAt: currentTimestamp
+                        }
+                        newBlocks.push(newBlock)
+                        newOrder = ((parseFloat(newOrder) + orderAfter) / 2).toFixed(12)
+                    }
+
+                    const newWorkingBlocks = [...blocks, ...newBlocks].sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
+                    
+                    setBlocks(newWorkingBlocks)
+
+                    const currentIndex = newWorkingBlocks.findIndex(b => b.id === focusedBlockId)
+                    const targetBlock = newWorkingBlocks[currentIndex + i]
+                    
+                    setFocusedBlockId(targetBlock.id)
+
+                    fetch("/api/pages/" + pageId + "/blocks/batch", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({create: newBlocks})
+                    }).then(response => response.json().then(result => console.log(result)))
+                }) 
+            }
+        }
 
         if (key === "ArrowUp") {
             setFocusedBlockId(prevId => {
