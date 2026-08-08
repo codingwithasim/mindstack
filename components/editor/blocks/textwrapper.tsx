@@ -63,10 +63,9 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
                 setDraft(value.toString())
             }}
             onBlur={commitChanges}
-            requestFocus={focus}
             tag={tag}
             placeholder={placeholder}
-            className={cn("w-full", props.className)}
+            className={cn("w-full bg-amber-200", props.className)}
             registerRef={(el) => {
                 if (registerRef) registerRef(block.id, el)
                 if (!inputRef.current) {

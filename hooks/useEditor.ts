@@ -1,7 +1,7 @@
 "use client"
 
 import { Block, BlockType } from "@/components/editor/types";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useEvent from "./useEvent";
 import { toast } from "sonner";
 
@@ -466,13 +466,55 @@ export default function useEditor(pageId: number) {
     const registerRef = (id: string, el: HTMLDivElement) => {
         if (el) {
             cursorRef.current.set(id, el)
+
+            const pending = pendingFocusRef.current
+
+            if (pending?.blockId === id) {
+                focusElementAt(el, pending.offset)
+                pendingFocusRef.current = null
+            }
         } else {
             cursorRef.current.delete(id)
         }
     }
 
+    function focusElementAt(el: HTMLDivElement, offset: number) {
+        el.focus()
+
+        const selection = window.getSelection()
+        if (!selection) return
+
+        const range = document.createRange()
+
+        const textNode = el.firstChild
+
+        if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
+            range.selectNodeContents(el)
+            range.collapse(true)
+
+            selection.removeAllRanges()
+            selection.addRange(range)
+            return
+        }
+
+        range.setStart(
+            textNode,
+            Math.min(offset, textNode.textContent?.length ?? 0)
+        )
+
+        range.collapse(true)
+
+        selection.removeAllRanges()
+        selection.addRange(range)
+    }
+
     const enterKeyRef = useRef<number>(null)
     const counter = useRef<number>(0)
+
+    const pendingFocusRef = useRef<{
+        blockId: string
+        offset: number
+    } | null>(null)
 
     const handleEnter = async (blockId: string, cursorPos: number, text?: string) => {
 
@@ -547,6 +589,8 @@ export default function useEditor(pageId: number) {
 
                 newBlocks[index + 1] = current
                 setBlocks(newBlocks)
+                focusAt(newBlocks[index + 1].id, 0)
+
                 await createBlockAPI(pageId, newBlocks[index])
 
                 return
@@ -582,6 +626,7 @@ export default function useEditor(pageId: number) {
 
                     setBlocks(newBlocks)
                     setFocusedBlockId(newBlocks[index + 1].id)
+                    focusAt(newBlocks[index + 1].id, 0)
 
                     await createBlockAPI(pageId, newBlocks[index + 1])
                     return
@@ -610,6 +655,9 @@ export default function useEditor(pageId: number) {
         setBlocks(newBlocks)
         setFocusedIndex(index + 1)
         setFocusedBlockId(newBlocks[index + 1].id)
+
+        focusAt(newBlocks[index + 1].id, 0)
+
         
 
         //Call API
@@ -766,8 +814,14 @@ export default function useEditor(pageId: number) {
     function focusAt(blockId: string, offset: number) {
             const el = cursorRef.current.get(blockId)
 
-            if (!el) return
-
+            if (!el) {
+                pendingFocusRef.current = {
+                    blockId,
+                    offset
+                }
+                return
+            }
+        
             el.focus()
 
             const selection = window.getSelection()
@@ -1010,11 +1064,12 @@ export default function useEditor(pageId: number) {
     const handleSpaceEvent = useEvent(handleSpace)
     const handleTabEvent = useEvent(handleTab)
 
+    
+
     return {
         state: {
             title,
             blocks,
-            currentIndex: focusedIndex,
             focusedBlockId,
             childrenMap
         },

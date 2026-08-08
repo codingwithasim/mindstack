@@ -5,9 +5,9 @@ import TextWrapper, { TextWrapperProps } from "./textwrapper";
 
 function TextBlock(props: TextWrapperProps) {
 
-    useEffect(() => {
-        console.log("re-rendering block from text-block");
-    })
+    // useEffect(() => {
+    //     console.log("re-rendering block from text-block");
+    // })
 
     return (
         <div className="flex flex-col w-full">

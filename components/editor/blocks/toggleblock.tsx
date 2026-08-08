@@ -3,14 +3,9 @@
 
 import { ChevronsDownUp, ChevronsUpDown } from "lucide-react";
 import TextWrapper, { TextWrapperProps } from "./textwrapper";
-import React, { memo, useCallback, useContext, useEffect, useState } from "react";
-import { BlockWrapper } from "../renderor";
+import React, { memo, useEffect } from "react";
 
-type ToggleProps = TextWrapperProps & {
-    children: React.ReactNode
-}
-
-function ToggleBlock({children, ...props}: ToggleProps) {
+function ToggleBlock({children, ...props}: TextWrapperProps) {
 
     useEffect(()=> {
         console.log("rerender from toggle ");    
@@ -25,7 +20,6 @@ function ToggleBlock({children, ...props}: ToggleProps) {
     return (
         <div className="flex flex-col w-full gap-2">
 
-            <BlockWrapper>
                 <div className="flex gap-1 w-full">
                     <div
                         onClick={() => handleStateChange(props.block.data.opened ?? false ? false : true)}
@@ -34,17 +28,17 @@ function ToggleBlock({children, ...props}: ToggleProps) {
                     </div>
                     <TextWrapper className="w-full font-medium" placeholder="Toggle" {...props} />
                 </div>
-            </BlockWrapper>
 
 
             {/* <div className="flex flex-col pl-4 w-full before:left-3 before:absolute before:text-gray-300 before:content[''] before:w-px before:h-[calc(100%-10px)] before:top-0  before:border-l relative"> */}
-            <div className="flex flex-col pl-4 w-full transition-all pb-2">
+            {/* <div className="flex flex-col pl-4 w-full transition-all pb-2">
                 {
                     props.block.data.opened && children
                 }
-            </div>
+            </div> */}
         </div>
     )
 }
+
 
 export default memo(ToggleBlock)

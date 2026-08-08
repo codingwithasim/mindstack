@@ -1,11 +1,10 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { createContext, useCallback, useEffect, useState } from "react"
+import { createContext, useCallback, useEffect, useMemo } from "react"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
-import BlockRenderor from "./renderor"
-import { Block } from "./types"
+import BlockTree from "./blockstree"
 
 type EditorProps = {
     params: { id: number }
@@ -26,13 +25,47 @@ export default function Editor({ params }: EditorProps) {
 
     const handleFocus = useCallback((blockId: string) => {
         editor.actions.setFocusedBlockId(blockId)
-        console.log(blockId, "was focused");
-        
     }, [editor.actions.setFocusedBlockId])
 
     const handleRegisterRef = useCallback((id: string, el: HTMLDivElement)=> {
         editor.actions.registerRef(id, el)
     }, [editor.actions.registerRef])
+
+
+    const rendererActions = useMemo(() => ({
+        onEnter: editor.actions.handleEnter,
+        onBackspace: editor.actions.handleBackspace,
+        onBlockFocus: handleFocus,
+        onChange: editor.actions.handleDataChanges,
+        onSpace: editor.actions.onSpace,
+        onTab: editor.actions.indentBlock,
+        registerRef: handleRegisterRef,
+        onDelete: editor.actions.deleteBlock,
+        onDuplicate: editor.actions.duplicateBlock,
+        onCopy: editor.actions.copy,
+        getNumberedListIndex: editor.actions.getNumberedListIndex,
+    }), [
+        editor.actions.handleEnter,
+        editor.actions.handleBackspace,
+        editor.actions.handleDataChanges,
+        editor.actions.onSpace,
+        editor.actions.indentBlock,
+        editor.actions.deleteBlock,
+        editor.actions.duplicateBlock,
+        editor.actions.copy,
+        editor.actions.getNumberedListIndex,
+        handleFocus,
+        handleRegisterRef,
+    ])
+
+    const rendererState = useMemo(() => ({
+        blocks: editor.state.blocks,
+        childrenMap: editor.state.childrenMap,
+    }), [
+        editor.state.blocks,
+        editor.state.childrenMap,
+    ])
+
                         
     return (
         <EditorContext value={{editor}}>
@@ -52,47 +85,9 @@ export default function Editor({ params }: EditorProps) {
             </header>
             <main
                 className="dark:bg-background max-w-5xl h-full m-auto select-text">
-                {
-                    editor.state.blocks.map((block, idx) => {
-                        const listIndex = block.type === "ordered_list" ?
-                            editor.actions.getNumberedListIndex(editor.state.blocks, block.id) :
-                            undefined
-
-                        if(block.parentBlockId) return null
-
-                        return (
-                            <div className="flex" key={block.id}>
-                                <BlockRenderor
-                                    block={block}
-                                    listIndex={listIndex}
-                                    focus={block.id === editor.state.focusedBlockId}
-                                    
-                                    state={{
-                                        blocks: editor.state.blocks,
-                                        childrenMap: editor.state.childrenMap,
-                                        focusedBlockId: editor.state.focusedBlockId,
-                                        currentIndex: editor.state.currentIndex
-                                    }}
-
-                                    actions={{
-                                        onEnter: editor.actions.handleEnter,
-                                        onBackspace: editor.actions.handleBackspace,
-                                        onBlockFocus: handleFocus,
-                                        onChange: editor.actions.handleDataChanges,
-                                        onSpace: editor.actions.onSpace,
-                                        onTab: editor.actions.indentBlock,
-                                        registerRef: handleRegisterRef,
-                                        onDelete: editor.actions.deleteBlock,
-                                        onDuplicate: editor.actions.duplicateBlock,
-                                        onCopy: editor.actions.copy,
-                                        getNumberedListIndex: editor.actions.getNumberedListIndex,
-
-                                    }}
-                                    />
-                            </div>
-                        )
-                    })
-                }
+                <BlockTree
+                    actions={rendererActions}
+                    state={rendererState}/>
             </main>
         </div>
         </EditorContext>

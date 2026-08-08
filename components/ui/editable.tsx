@@ -82,7 +82,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
         
     return (
         <Tag
-            className={cn(defaultClasses , className, "before:text-placeholder")}
+            className={cn(defaultClasses, className, "before:text-placeholder")}
             contentEditable
             tabIndex={0}
             aria-multiline="true"

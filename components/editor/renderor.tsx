@@ -3,7 +3,7 @@ import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { memo, ReactNode, useMemo } from "react";
+import { memo, ReactNode, useEffect } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
@@ -153,15 +153,7 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
 
 type BlockRendererProps = {
     block: Block
-    focus: boolean
     listIndex?: number
-
-    state: {
-        blocks: Block[]
-        childrenMap: Map<string, Block[]>
-        focusedBlockId?: string
-        currentIndex: number | null
-    }
 
     actions: {
         onEnter: (blockId: string, cursorPos: number, text?: string) => void
@@ -180,7 +172,9 @@ type BlockRendererProps = {
 
 function BlockRenderor(props: BlockRendererProps) {
 
-    const children = props.state.childrenMap.get(props.block.id) ?? []
+    useEffect(()=> {
+        console.log("Renderor is rerendoring")
+    })
 
     const handleBlockTypeChange = (type: BlockType) => {
         
@@ -202,30 +196,6 @@ function BlockRenderor(props: BlockRendererProps) {
             })
         }
     }
-
-    const renderedChildren = useMemo(() => {
-        return children.map(childBlock => {
-            const listIndex =
-                childBlock.type === "ordered_list"
-                    ? props.actions.getNumberedListIndex(props.state.blocks, childBlock.id)
-                    : undefined
-
-            return (
-                <MemoBlockRenderer
-                    key={childBlock.id}
-                    {...props}
-                    block={childBlock}
-                    focus={childBlock.id === props.state.focusedBlockId}
-                    listIndex={listIndex}
-                />
-            )
-        })
-    }, [
-        children,
-        props.state.focusedBlockId,
-        props.state.currentIndex,
-        props.actions.getNumberedListIndex
-    ])
 
     const handleItemClick = async (blockId: string, action: string) => {
         
@@ -260,7 +230,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     onItemSelect={handleItemClick}>
                     <TextBlock 
                         block={props.block}
-                        focus={props.focus}
                         {...actions}
                     />
                 </BlockWrapper>
@@ -278,7 +247,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     <HeadingBlock
                         placeholder={"Heading " + Number(props.block.type.at(-1))}
                         block={props.block}
-                        focus={props.focus}
                         level={Number(props.block.type.at(-1))} {...actions} />
                 </BlockWrapper>
             )
@@ -291,7 +259,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     <QuoteBlock
                         placeholder="Empty quote"
                         block={props.block}
-                        focus={props.focus}
                         {...actions} />
                 </BlockWrapper>
             )
@@ -304,7 +271,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     <ListBlock
                         index={props.listIndex}
                         block={props.block}
-                        focus={props.focus}
                         placeholder="List"
                         listType="ordered" {...actions} />
                 </BlockWrapper>
@@ -318,7 +284,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     <ListBlock
                         placeholder="List"
                         block={props.block}
-                        focus={props.focus}
                         listType="unordered" {...actions} />
                 </BlockWrapper>
             )
@@ -331,7 +296,6 @@ function BlockRenderor(props: BlockRendererProps) {
                     <ListBlock
                         placeholder="To-do"
                         block={props.block}
-                        focus={props.focus}
                         listType="todo" {...actions} />
                 </BlockWrapper>
             )
@@ -345,14 +309,20 @@ function BlockRenderor(props: BlockRendererProps) {
                 </BlockWrapper>
             )
         case "toggle":
-            
+
             return (
-                    <ToggleBlock
-                        block={props.block}
-                        focus={props.focus}
-                        {...actions}>
-                        {renderedChildren}
-                    </ToggleBlock>
+                    <div className="flex flex-col w-full gap-2">
+                        <BlockWrapper
+                            onItemSelect={handleItemClick}
+                            blockId={props.block.id}
+                            onTypeSelect={handleBlockTypeChange}>
+                            <ToggleBlock
+                                block={props.block}
+                                {...actions}>
+                                    {/* {renderedChildren} */}
+                            </ToggleBlock>
+                        </BlockWrapper>
+                    </div>
             )
         case "page":
             return(
@@ -375,6 +345,7 @@ function BlockRenderor(props: BlockRendererProps) {
     }
 }
 
+
+
 export default memo(BlockRenderor)
 
-const MemoBlockRenderer = memo(BlockRenderor)
