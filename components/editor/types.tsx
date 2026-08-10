@@ -44,4 +44,5 @@ export type Page = {
     title: string
     updatedAt: number
     createdAt: number    
+    parentPageId: number | null
 }

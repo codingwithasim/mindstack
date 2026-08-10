@@ -37,8 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
 
     let blockOrder = "1.00000";
 
-    if(payload.blockOrder && isValidOrder(payload.blockOrder)){
-        blockOrder = payload.blockOrder
+    if(payload.order && isValidOrder(payload.order)){
+        blockOrder = payload.order
     }else{
         const lastOrderRow = await client
         .select({lastOrder: blocks.blockOrder})
@@ -52,8 +52,6 @@ export async function POST(req: NextRequest, { params }: { params: {id: string}}
             blockOrder = (lastOrder + 1).toFixed(5)
         }
     }
-
-    
 
     const timestamp = new Date()
 

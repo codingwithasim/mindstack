@@ -16,6 +16,7 @@ import { Page } from "./editor/types"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Kbd } from "./ui/kbd"
+import { api } from "@/api"
 
 export function SearchCommand() {
     const [open, setOpen] = useState(false)
@@ -25,11 +26,7 @@ export function SearchCommand() {
 
 
     useEffect(() => {
-        fetch("/api/pages").then(response => {
-            response.json().then(pages => {
-                setItems(pages)
-            })
-        })
+        api.pages.getPages().then(pages => setItems(pages))
     }, [])
 
 

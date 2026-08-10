@@ -65,7 +65,7 @@ export default function Editor({ params }: EditorProps) {
             <header className="pt-30 pb-4 pl-6 max-w-5xl m-auto">
                 <Editable
                     tag="h1"
-                    onBlur={e => editor.actions.renamePageAPI(e.currentTarget.textContent)  }
+                    onBlur={e => editor.actions.renamePageAPI(params.id, e.currentTarget.textContent)  }
                     value={editor.state.title}
                     requestFocus={editor.state.title.length == 0}
                     onKeyDown={e => {

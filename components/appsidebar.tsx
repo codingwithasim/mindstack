@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { useTheme } from "next-themes"
 import { SearchCommand } from "./SearchCommand"
+import { api } from "@/api"
+import { log } from "util"
 
 export default function AppSideBar() {
 
@@ -21,11 +23,11 @@ export default function AppSideBar() {
     
 
     useEffect(() => {
-        fetch("/api/pages").then(response => {
-            response.json().then(pages => {
-                setPages(pages.filter(p => !p.parentPageId))
-            })
-        })
+        
+        (async () => {
+            const pages = await api.pages.getPages()
+            setPages(pages.filter(p => !p.parentPageId))
+        })()
     }, [])
 
     const handlePageCreation = async () => {
@@ -44,19 +46,8 @@ export default function AppSideBar() {
 
         // TODO: switch pages to client-generated IDs for optimistic routing
         try {
-            const res = await fetch("/api/pages", {
-                method: "POST",
-                body: JSON.stringify({
-                    title: ""
-                })
-            })
-
-            if (!res.ok) {
-                setPages(prev => prev.filter(p => p.id !== tempId))
-                throw new Error("Failed to create page")
-            }
-
-            const newPage = await res.json()
+            
+            const newPage = await api.pages.createPage()
 
             setPages(prev => prev.map(p => {
                 if (p.id === tempId) {
@@ -70,7 +61,8 @@ export default function AppSideBar() {
             router.push("/pages/" + newPage.id)
 
         } catch (err) {
-            console.log(err)
+            console.error(err)
+            setPages(prev => prev.filter(p => p.id !== tempId))
         }
     }
 
@@ -80,17 +72,11 @@ export default function AppSideBar() {
         setPages(prev => prev.filter(page => page.id !== pageId))
 
         try {
-            const res = await fetch("/api/pages/" + pageId, {
-                method: "DELETE"
-            })
-
-            if (!res.ok) {
-                throw new Error("Failed to delete page")
-            }
+            await api.pages.deletePage(pageId)
 
             router.push("/")
         } catch (err) {
-            console.log(err)
+            console.error(err)
         }
 
     }

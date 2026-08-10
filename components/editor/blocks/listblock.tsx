@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import TextWrapper, { TextWrapperProps } from "./textwrapper";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect } from "react";
+import { api } from "@/api";
 
 type ListProps = {
     index?: number
@@ -19,14 +20,11 @@ export default function ListBlock({listType="ordered", index, ...props}: ListPro
 
         onChange({...block, data: {text: block.data.text, checked: val}})
 
-        await fetch("/api/blocks/" + block.id, {
-            method: "PATCH",
-            body: JSON.stringify({
-                data: {
-                    text: block.data.text,
-                    checked: val
-                }
-            })
+        api.blocks.updateBlock(block.id, {
+            data: {
+                text: block.data.text,
+                checked: val
+            }
         })
     }
 

@@ -10,6 +10,8 @@ import { Separator } from "../ui/separator";
 import ToggleBlock from "./blocks/toggleblock";
 import { toast } from "sonner";
 import PageBlock from "./blocks/pageblock";
+import useEditorStore from "@/stores/useEditorStore";
+import { api } from "@/api";
 
 export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
     
@@ -69,6 +71,8 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
             value: "page"
         }
     ]
+        const block = useEditorStore(s => s.blocksById[blockId])
+
 
     return (
         <div className={"flex items-center gap-2 flex-1 group"}>
@@ -181,16 +185,8 @@ function BlockRenderor(props: BlockRendererProps) {
                 type
             })
 
-            fetch("/api/blocks/" + props.block.id, {
-                method: "PATCH",
-                body: JSON.stringify({
-                    type
-                })
-            }).then(response => {
-                response.json().then(result => {
-                    console.log("✅ Type changed.");
-                })
-            })
+            api.blocks.updateBlock(props.block.id, {type})
+                .catch(err => console.error(err))
         }
     }
 

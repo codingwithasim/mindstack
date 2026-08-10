@@ -1,11 +1,11 @@
 "use client"
 
 import { Block, BlockType } from "@/components/editor/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useEvent from "./useEvent";
 import { toast } from "sonner";
 import useEditorStore from "@/stores/useEditorStore";
-import { resolve } from "path";
+import { api } from "@/api";
 
 
 export default function useEditor(pageId: number) {
@@ -17,8 +17,6 @@ export default function useEditor(pageId: number) {
 
     const blocksById = useEditorStore(state => state.blocksById)
 
-    const loadBlocks = useEditorStore(state => state.setBlock)
-
     const insertBlock = useEditorStore(state => state.insertBlock)
     const updateBlock = useEditorStore(state => state.updateBlock)
     const deleteBlock = useEditorStore(state => state.deleteBlock)
@@ -26,33 +24,25 @@ export default function useEditor(pageId: number) {
 
     useEffect(() => {
 
-        /**Load page title*/
-        fetch("/api/pages/" + pageId).then(response => {
-            response.json().then(page => {
-                if (response.status === 200) {
-                    setTitle(page.title)
-                    return
-                }
-            })
-        }).catch(err => console.log(err.message))
+        (async () => {
+            /**Load page title*/
+            try {
+                const [pageData, blocks] = await Promise.all([
+                    await api.pages.getPage(pageId),
+                    await api.blocks.getBlocks(pageId)
+                ])
 
-        /**Load current page's blocks*/
-        fetch("/api/pages/" + pageId + "/blocks", { method: "GET" })
-            .then(response => {
-                response.json().then(data => {
-                    if (response.status === 200) {
-                        const blocksData = data.map((b: any) => {
-                            return {
-                                ...b,
-                                data: JSON.parse(b.data)
-                            }
-                        })
-                        loadBlocks(blocksData)
-                    }
-                }
-                )
-            })
-    }, [])
+                setTitle(pageData.title)
+                useEditorStore.getState().setBlock(blocks)
+
+
+            } catch (err) {
+                console.log(err)
+            }
+
+        })()
+
+    }, [pageId])
 
     /**========================= Helper functions =========================== */
 
@@ -142,90 +132,6 @@ export default function useEditor(pageId: number) {
         ]
     }
 
-
-    /**========================= API Helper functions =========================== */
-
-    const createBlockAPI = async (pageId: number, block: Omit<Block, "updatedAt" | "createdAt">) => {
-
-        const res = await fetch("/api/pages/" + pageId + "/blocks", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                id: block.id,
-                blockOrder: block.order,
-                type: block.type,
-                data: block.data,
-                parentBlockId: block.parentBlockId,
-            })
-        })
-
-        if (!res.ok) {
-            throw new Error("Failed to create block")
-        }
-
-        return await res.json()
-    }
-
-    const deleteBlockAPI = async (blockId: string) => {
-        const res = await fetch(`/api/blocks/${blockId}`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
-
-        if (!res.ok) {
-            throw new Error("Failed to delete the block")
-        }
-
-        return await res.json()
-    }
-
-    const updateAPI = async (blockId: string, patch: { type?: string, blockOrder?: string, data?: object, parentBlockId?: string }) => {
-
-        if (!patch || Object.entries(patch).length === 0) {
-            throw new Error("No data was given to update")
-        }
-
-        const res = await fetch(`/api/blocks/${blockId}`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(patch)
-        })
-
-        if (!res.ok) {
-            throw new Error("Failed to update the block")
-        }
-
-        return await res.json()
-    }
-
-    const createPageAPI = async (title: string = "") => {
-        return await fetch("/api/pages/", {
-            method: "POST",
-            body: JSON.stringify({
-                title
-            })
-        })
-    }
-
-    const renamePageAPI = async (title: string) => {
-        const res = await fetch(`/api/pages/${pageId}`, {
-            method: "PATCH",
-            body: JSON.stringify({ title })
-        })
-
-        if (!res.ok) {
-            throw new Error("Failed to rename the page !");
-        }
-
-        return await res.json()
-    }
-
     /**========================= Client functions =========================== */
 
 
@@ -251,8 +157,6 @@ export default function useEditor(pageId: number) {
 
                     const currentBlock = blocks[currentBlockIndex]
                     const nextBlock = blocks[currentBlockIndex + 1]
-
-                    
 
                     const orderBefore = parseFloat(currentBlock.order)
                     const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
@@ -289,11 +193,7 @@ export default function useEditor(pageId: number) {
                     
                     setFocusedBlockId(targetBlock.id)
 
-                    // fetch("/api/pages/" + pageId + "/blocks/batch", {
-                    //     method: "POST",
-                    //     headers: {"Content-Type": "application/json"},
-                    //     body: JSON.stringify({create: newBlocks})
-                    // }).then(response => response.json().then(result => console.log(result)))
+                    api.blocks.batch(pageId, {create: newBlocks}).then(res => console.log(res))
                 }) 
             }
         }
@@ -549,9 +449,8 @@ export default function useEditor(pageId: number) {
 
         //Convert list item to text if it has no text
         if (currentBlock.type.endsWith("list") && !currentBlock.data.text.length) {
-            // updateBlock(blockId, { type: "text" })
             updateBlock(blockId, {type: "text"})
-            updateAPI(blockId, {type: "text"})
+            api.blocks.updateBlock(blockId, {type: "text"})
             return
         }
 
@@ -625,7 +524,7 @@ export default function useEditor(pageId: number) {
                     setFocusedBlockId(newId)
                     focusAt(newId, 0)
 
-                    await createBlockAPI(pageId, newBlock)
+                    api.blocks.createBlock(pageId, newBlock)
                     return
                 }
             }
@@ -675,23 +574,24 @@ export default function useEditor(pageId: number) {
 
         focusAt(newBlocks[currentIndex + 1].id, 0)
 
-        
 
         //Call API
         try {
-            await createBlockAPI(pageId, {
+             const res = await api.blocks.createBlock(pageId, {
                 id: newBlocks[currentIndex + 1].id,
                 type: newBlocks[currentIndex + 1].type,
                 order: newOrder,
                 data: { text: cursorAtEnd ? "" : afterText },
-                parentBlockId: newBlocks[currentIndex + 1].parentBlockId
+                parentBlockId: newBlocks[currentIndex + 1].parentBlockId,
+                createdAt: Date.now(),
+                updatedAt: Date.now()
             })
 
             //Edits the previous block if cursorAtEnd is false
             const type = newBlocks[currentIndex].type
 
             if (!cursorAtEnd) {
-                await updateAPI(blockId, { data: { text: beforeText }, type })
+                await api.blocks.updateBlock(blockId, { data: { text: beforeText }, type })
             }
         } catch (err) {
             console.log("Failed to split block", err)
@@ -710,7 +610,7 @@ export default function useEditor(pageId: number) {
         }
 
         try {
-            await deleteBlockAPI(blockId)
+            await api.blocks.deleteBlock(blockId)
         } catch (err) {
             console.log(err)
         }
@@ -747,7 +647,7 @@ export default function useEditor(pageId: number) {
 
         updateBlock(block.id, block)
 
-        await updateAPI(block.id, {
+        await api.blocks.updateBlock(block.id, {
             type: block.type,
             data: block.data
         })
@@ -777,7 +677,7 @@ export default function useEditor(pageId: number) {
 
                 focusAt(blockId, 0)
 
-                await updateAPI(blockId, { type: "text", data: {
+                await api.blocks.updateBlock(blockId, { type: "text", data: {
                         ...blocks[idx].data,
                         text
                     } })
@@ -819,8 +719,8 @@ export default function useEditor(pageId: number) {
 
         focusAt(merged.id, mergedLength)
 
-        await updateAPI(blocks[prevIndex].id, { data: resolvedData })
-        await deleteBlockAPI(blockId)
+        await api.blocks.updateBlock(blocks[prevIndex].id, { data: resolvedData })
+        await api.blocks.deleteBlock(blockId)
     }
 
     function focusAt(blockId: string, offset: number) {
@@ -866,7 +766,7 @@ export default function useEditor(pageId: number) {
         insertBlock(block)
         setFocusedIndex(0)
 
-        await createBlockAPI(pageId, block)
+        api.blocks.createBlock(pageId, block)
     }
 
     async function createBlock(data: Omit<Block, "id" | "updatedAt" | "createdAt">) {
@@ -878,7 +778,7 @@ export default function useEditor(pageId: number) {
         }
 
         insertBlock(block)
-        await createBlockAPI(pageId, block)
+         api.blocks.createBlock(pageId, block)
     }
 
     const getNumberedListIndex = (blockId: string) => {
@@ -938,7 +838,7 @@ export default function useEditor(pageId: number) {
         setFocusedBlockId(clientId)
 
         try {
-            await createBlockAPI(pageId, newBlock)
+             api.blocks.createBlock(pageId, newBlock)
         } catch (err) {
             console.log(err);
         }
@@ -1010,7 +910,7 @@ export default function useEditor(pageId: number) {
         cursorRef.current.delete(blockId)
         focusAt(blockId, 0)
 
-        await updateAPI(block.id, {
+        await api.blocks.updateBlock(block.id, {
             type: data.type,
             data: data.data
         })
@@ -1038,7 +938,7 @@ export default function useEditor(pageId: number) {
     const handleDataChangesEvent = useEvent(handleDataChanges)
     const handleBackspaceEvent = useEvent(handleBackspace)
     const registerRefEvent = useEvent(registerRef)
-    const renamePageAPIEvent = useEvent(renamePageAPI)
+    const renamePageAPIEvent = useEvent(api.pages.renamePageAPI)
     const createFirstBlockEvent = useEvent(createFirstBlock)
     const getNumberedListIndexEvent = useEvent(getNumberedListIndex)
     const createBlockEvent = useEvent(createBlock)
@@ -1053,6 +953,7 @@ export default function useEditor(pageId: number) {
         state: {
             title,
             focusedBlockId,
+            pageId
         },
 
         actions: {
