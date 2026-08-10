@@ -4,15 +4,24 @@ import { Block, BlockType } from "@/components/editor/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import useEvent from "./useEvent";
 import { toast } from "sonner";
+import useEditorStore from "@/stores/useEditorStore";
+import { resolve } from "path";
 
 
 export default function useEditor(pageId: number) {
 
     const [title, setTitle] = useState<string>("")
-    const [blocks, setBlocks] = useState<Block[]>([]);
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
     const [focusedBlockId, setFocusedBlockId] = useState<string>()
     const cursorRef = useRef<Map<string, HTMLDivElement>>(new Map())
+
+    const blocksById = useEditorStore(state => state.blocksById)
+
+    const loadBlocks = useEditorStore(state => state.setBlock)
+
+    const insertBlock = useEditorStore(state => state.insertBlock)
+    const updateBlock = useEditorStore(state => state.updateBlock)
+    const deleteBlock = useEditorStore(state => state.deleteBlock)
 
 
     useEffect(() => {
@@ -32,15 +41,13 @@ export default function useEditor(pageId: number) {
             .then(response => {
                 response.json().then(data => {
                     if (response.status === 200) {
-                        setBlocks(data.map((b: any) => {
+                        const blocksData = data.map((b: any) => {
                             return {
                                 ...b,
                                 data: JSON.parse(b.data)
                             }
-                        }))
-                        console.log(data);
-                        
-
+                        })
+                        loadBlocks(blocksData)
                     }
                 }
                 )
@@ -58,17 +65,6 @@ export default function useEditor(pageId: number) {
             ...block,
             order: (i + 1).toFixed(10)
         }))
-    }
-
-
-    const insertBlock = (blocks: Block[], block: Block) => {
-        return [
-            ...blocks, block
-        ].sort((a, b) => parseFloat(a.order) - parseFloat(b.order))
-    }
-
-    const deleteBlock = (blocks: Block[], blockId: string) => {
-        return blocks.filter(b => b.id !== blockId)
     }
 
     const splitBlock = (blocks: Block[], blockId: string, cursorPos: number): Block[] => {
@@ -146,18 +142,6 @@ export default function useEditor(pageId: number) {
         ]
     }
 
-    const updateBlock = (blockId: string, blockData: Partial<Omit<Block, "id">>) => {
-        setBlocks(prev => prev.map(b => {
-            if (b.id === blockId) {
-                return { ...b, ...blockData }
-            }
-            return b
-        }))
-    }
-
-    const mergeBlock = (blocks: Block[], blockId: string, toId: string) => {
-
-    }
 
     /**========================= API Helper functions =========================== */
 
@@ -244,9 +228,13 @@ export default function useEditor(pageId: number) {
 
     /**========================= Client functions =========================== */
 
+
+
     const handleArrowNavigation = (e: KeyboardEvent) => {
 
-        if (!blocks || blocks.length === 0) return
+
+        const blocks = Object.values(useEditorStore.getState().blocksById)
+        blocks.sort((a, b) => parseFloat(a.order) - parseFloat(b.order))
 
         const key: string = e.key
 
@@ -264,10 +252,12 @@ export default function useEditor(pageId: number) {
                     const currentBlock = blocks[currentBlockIndex]
                     const nextBlock = blocks[currentBlockIndex + 1]
 
+                    
+
                     const orderBefore = parseFloat(currentBlock.order)
                     const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
                     let newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
-
+                    
                     
                     let newBlocks = []
                     const currentTimestamp = Date.now()
@@ -290,18 +280,20 @@ export default function useEditor(pageId: number) {
 
                     const newWorkingBlocks = [...blocks, ...newBlocks].sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
                     
-                    setBlocks(newWorkingBlocks)
+                    for(const block of newBlocks){
+                        insertBlock(block)
+                    }
 
                     const currentIndex = newWorkingBlocks.findIndex(b => b.id === focusedBlockId)
                     const targetBlock = newWorkingBlocks[currentIndex + i]
                     
                     setFocusedBlockId(targetBlock.id)
 
-                    fetch("/api/pages/" + pageId + "/blocks/batch", {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({create: newBlocks})
-                    }).then(response => response.json().then(result => console.log(result)))
+                    // fetch("/api/pages/" + pageId + "/blocks/batch", {
+                    //     method: "POST",
+                    //     headers: {"Content-Type": "application/json"},
+                    //     body: JSON.stringify({create: newBlocks})
+                    // }).then(response => response.json().then(result => console.log(result)))
                 }) 
             }
         }
@@ -536,45 +528,49 @@ export default function useEditor(pageId: number) {
         //     return
         // }
 
+        const blocks = Object.values(blocksById)
+        blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
+        
+        const currentIndex = blocks.findIndex(b => b.id === blockId)
 
-        const index = blocks.findIndex(b => b.id === blockId)
+        if (currentIndex === -1) return
 
-        if (index === -1) return
-
-        let current = blocks[index]
+        let currentBlock = blocks[currentIndex]
 
         if (text !== undefined) {
-            current = {
-                ...current, data: {
-                    ...current.data, text
+            currentBlock = {
+                ...currentBlock, data: {
+                    ...currentBlock.data, text
                 }
             }
         }
 
-        const next = blocks[index + 1]
+        const nextBlock = blocks[currentIndex + 1]
 
-        if (current.type.endsWith("list") && !current.data.text.length) {
-            updateBlock(blockId, { type: "text" })
+        //Convert list item to text if it has no text
+        if (currentBlock.type.endsWith("list") && !currentBlock.data.text.length) {
+            // updateBlock(blockId, { type: "text" })
+            updateBlock(blockId, {type: "text"})
             updateAPI(blockId, {type: "text"})
             return
         }
 
-        if (current.type === "toggle") {
+        if (currentBlock.type === "toggle") {
 
             const isCursorAtStart = cursorPos === 0
             const isCursorAtEnd = cursorPos === text?.length
             const isEmpty = text?.length === 0
 
             if (isEmpty) {
-                updateBlock(blockId, { type: "text" })
+                updateBlock(blockId, {type: "text"})
                 return
             }
 
             if (isCursorAtStart) {
-                const prev = blocks[index - 1]
-                const order = (parseFloat(current.order) + (prev ? parseFloat(prev.order) : 0)) / 2
+                const prev = blocks[currentIndex - 1]
+                const order = (parseFloat(currentBlock.order) + (prev ? parseFloat(prev.order) : 0)) / 2
 
-                const newBlocks = insertBlock(blocks, {
+                const newBlock = {
                     id: crypto.randomUUID(),
                     type: "toggle",
                     parentBlockId: null,
@@ -585,35 +581,36 @@ export default function useEditor(pageId: number) {
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                     order: order.toFixed(12)
-                })
+                }
 
-                newBlocks[index + 1] = current
-                setBlocks(newBlocks)
-                focusAt(newBlocks[index + 1].id, 0)
+                // setBlocks(newBlocks)
+                insertBlock(newBlock)
+                focusAt(currentBlock.id, 0)
 
-                await createBlockAPI(pageId, newBlocks[index])
+                // await createBlockAPI(pageId, newBlocks[index])
 
                 return
             }
 
             if (isCursorAtEnd) {
 
-                if (current.data.opened) {
-                    let orderBefore = parseFloat(current.order)
+                if (currentBlock.data.opened) {
+                    let orderBefore = parseFloat(currentBlock.order)
 
-                    for(let i = index; i < blocks.length; i++){
+                    for(let i = currentIndex; i < blocks.length; i++){
                         if(!blocks[i].parentBlockId){
-                            console.log(blocks[i].data)
                             break
                         }
                     }
 
 
-                    const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
+                    const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
                     const newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
 
-                    const newBlocks = insertBlock(blocks, {
-                        id: crypto.randomUUID(),
+                    const newId = crypto.randomUUID()
+
+                    const newBlock: Block = {
+                        id: newId,
                         type: "text",
                         data: {
                             text: ""
@@ -622,56 +619,76 @@ export default function useEditor(pageId: number) {
                         order: newOrder,
                         createdAt: Date.now(),
                         updatedAt: Date.now()
-                    })
+                    }
 
-                    setBlocks(newBlocks)
-                    setFocusedBlockId(newBlocks[index + 1].id)
-                    focusAt(newBlocks[index + 1].id, 0)
+                    insertBlock(newBlock)
+                    setFocusedBlockId(newId)
+                    focusAt(newId, 0)
 
-                    await createBlockAPI(pageId, newBlocks[index + 1])
+                    await createBlockAPI(pageId, newBlock)
                     return
                 }
             }
 
         }
 
-        //Calculate new order for block
-        const orderBefore = parseFloat(current.order)
-        const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
+        //Calculate the order of the new block
+
+        const orderBefore = parseFloat(currentBlock.order)
+        const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
         const newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
+        
 
-        const beforeText: string = current.data.text.slice(0, cursorPos);
-        const afterText: string = current.data.text.slice(cursorPos);
+        const beforeText: string = currentBlock.data.text.slice(0, cursorPos);
+        const afterText: string = currentBlock.data.text.slice(cursorPos);
 
-        const workingBlocks: Block[] = [...blocks]
+        const workingBlocks: Block[] = blocks
 
-        workingBlocks[index] = current
+        workingBlocks[currentIndex] = currentBlock
 
         //Checks if cursor is at the end of the line
-        const cursorAtEnd = workingBlocks[index].data.text.length === cursorPos
+        const cursorAtEnd = workingBlocks[currentIndex].data.text.length === cursorPos
 
         const newBlocks: Block[] = splitBlock(workingBlocks, blockId, cursorPos)
 
-        setBlocks(newBlocks)
-        setFocusedIndex(index + 1)
-        setFocusedBlockId(newBlocks[index + 1].id)
+        updateBlock(blockId, {
+            ...blocksById[blockId],
+            data: {
+                ...blocksById[blockId].data,
+                text: beforeText
+            }
+        })
 
-        focusAt(newBlocks[index + 1].id, 0)
+        insertBlock({
+            id: newBlocks[currentIndex + 1].id,
+            type: newBlocks[currentIndex + 1].type,
+            order: newOrder,
+            data: { text: cursorAtEnd ? "" : afterText },
+            parentBlockId: newBlocks[currentIndex + 1].parentBlockId,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+        })
+
+        // setBlocks(newBlocks)
+        setFocusedIndex(currentIndex + 1)
+        setFocusedBlockId(newBlocks[currentIndex + 1].id)
+
+        focusAt(newBlocks[currentIndex + 1].id, 0)
 
         
 
         //Call API
         try {
             await createBlockAPI(pageId, {
-                id: newBlocks[index + 1].id,
-                type: newBlocks[index + 1].type,
+                id: newBlocks[currentIndex + 1].id,
+                type: newBlocks[currentIndex + 1].type,
                 order: newOrder,
                 data: { text: cursorAtEnd ? "" : afterText },
-                parentBlockId: newBlocks[index + 1].parentBlockId
+                parentBlockId: newBlocks[currentIndex + 1].parentBlockId
             })
 
             //Edits the previous block if cursorAtEnd is false
-            const type = newBlocks[index].type
+            const type = newBlocks[currentIndex].type
 
             if (!cursorAtEnd) {
                 await updateAPI(blockId, { data: { text: beforeText }, type })
@@ -686,7 +703,7 @@ export default function useEditor(pageId: number) {
         if (focusedIndex == 0) return;
 
         //Filter out blocks excluding blockId
-        setBlocks(prev => deleteBlock(prev, blockId))
+        deleteBlock(blockId)
 
         if (focusedIndex) {
             setFocusedIndex(focusedIndex - 1)
@@ -702,22 +719,18 @@ export default function useEditor(pageId: number) {
 
     const handleDataChanges = async (block: Block) => {
 
-        let data : {
+        let data : Partial<{
             id: number
             title: string
-        }
+        }>
 
         if(block.type === "page"){
-            console.log("here");
-            
             try{
                 const response = await fetch("/api/pages/" + pageId, {
                     method: "POST"
                 })
 
                 data = await response.json()
-
-                console.log(data);
             }catch(err){
                 console.log(err);
                 return
@@ -725,18 +738,14 @@ export default function useEditor(pageId: number) {
             
         }
 
-        setBlocks(prev => prev.map(b => {
-            if (b.id === block.id) {
-                if(data){
-                    block.data = {
-                        ...block.data,
-                        pageId: data.id
-                    }
-                }
-                return block
+        if(data){
+            block["data"] = {
+                ...block.data,
+                pageId: data.id
             }
-            return b
-        }))
+        }
+
+        updateBlock(block.id, block)
 
         await updateAPI(block.id, {
             type: block.type,
@@ -746,20 +755,32 @@ export default function useEditor(pageId: number) {
 
     const handleBackspace = async (blockId: string, cursorPos: number, text: string) => {
         if (cursorPos) return
+        
+            const blocksById = useEditorStore.getState().blocksById
+
+        const blocks = Object.values(blocksById)
+        blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
 
         const idx = blocks.findIndex(b => b.id === blockId)
 
         if (["bullet_list", "ordered_list", "check_list", "quote", "toggle"].includes(blocks[idx].type)) {
             if (cursorPos === 0) {
-                handleDataChanges({
-                    ...blocks[idx],
+                updateBlock(blockId, {
                     type: "text",
                     data: {
                         ...blocks[idx].data,
                         text
                     }
                 })
-                await updateAPI(blockId, { type: "text" })
+
+                cursorRef.current.delete(blockId)
+
+                focusAt(blockId, 0)
+
+                await updateAPI(blockId, { type: "text", data: {
+                        ...blocks[idx].data,
+                        text
+                    } })
                 return;
             }
         }
@@ -783,29 +804,20 @@ export default function useEditor(pageId: number) {
             text: prevBlock.data.text + text
         }
 
-        setBlocks(prev => {
-
-            const merged: Block = {
+        const merged: Block = {
                 ...prevBlock,
                 data: resolvedData
-            }
+        }
 
-            const updates: Block[] = [
-                ...prev.slice(0, prevIndex), //Blocks before the merged block
-                merged, //Merged block
-                ...prev.slice(prevIndex + 1, idx), //Blocks after merged block till current block (excluded)
-                ...prev.slice(idx + 1) //Blocks after current block (excluded)
-            ]
-
-            return updates
-        })
+        updateBlock(merged.id, merged)
+        deleteBlock(blockId)
 
         setFocusedIndex(prevIndex)
         setFocusedBlockId(blocks[prevIndex].id)
 
-        const mergedLength: number = blocks[prevIndex].data.text.length ?? 0
+        const mergedLength: number = resolvedData.text.length
 
-        focusAt(blocks[prevIndex].id, mergedLength)
+        focusAt(merged.id, mergedLength)
 
         await updateAPI(blocks[prevIndex].id, { data: resolvedData })
         await deleteBlockAPI(blockId)
@@ -814,7 +826,8 @@ export default function useEditor(pageId: number) {
     function focusAt(blockId: string, offset: number) {
             const el = cursorRef.current.get(blockId)
 
-            if (!el) {
+            if (!el || !document.contains(el)) {
+                cursorRef.current.delete(blockId)
                 pendingFocusRef.current = {
                     blockId,
                     offset
@@ -850,7 +863,7 @@ export default function useEditor(pageId: number) {
             createdAt: Date.now()
         }
 
-        setBlocks([block])
+        insertBlock(block)
         setFocusedIndex(0)
 
         await createBlockAPI(pageId, block)
@@ -864,12 +877,15 @@ export default function useEditor(pageId: number) {
             createdAt: Date.now()
         }
 
-        setBlocks(prev => insertBlock(blocks, block))
-
-        // await createBlockAPI(pageId, block)
+        insertBlock(block)
+        await createBlockAPI(pageId, block)
     }
 
-    const getNumberedListIndex = (blocks: Block[], blockId: string) => {
+    const getNumberedListIndex = (blockId: string) => {
+
+        const blocks = Object.values(useEditorStore.getState().blocksById)
+        
+        blocks.sort((a, b) => parseFloat(a.order) - parseFloat(b.order))
 
         const idx: number = blocks.findIndex(b => b.id === blockId)
 
@@ -910,19 +926,15 @@ export default function useEditor(pageId: number) {
     const duplicateBlock = async (blockId: string) => {
         if (!blockId || typeof blockId !== "string") return
 
-        const idx = blocks.findIndex(block => blockId === block.id)
+        const current: Block = useEditorStore.getState().getBlock(blockId)
 
-        if (idx === -1) return
-
-        const current: Block = blocks[idx]
+        if(!current) return
 
         const clientId = crypto.randomUUID()
 
         const newBlock = { ...current, id: clientId }
 
-        const newBlocks = insertBlock(blocks, newBlock)
-
-        setBlocks(newBlocks)
+        insertBlock(newBlock)
         setFocusedBlockId(clientId)
 
         try {
@@ -935,11 +947,10 @@ export default function useEditor(pageId: number) {
     const copy = async (blockId: string) => {
         if (!blockId || typeof blockId !== "string") return
 
-        const idx = blocks.findIndex(block => blockId === block.id)
+        const current = useEditorStore.getState().getBlock(blockId)
 
-        if (idx === -1) return
 
-        const current: Block = blocks[idx]
+        if(!current) return
 
         const textToCopy = current.data.text
 
@@ -950,11 +961,7 @@ export default function useEditor(pageId: number) {
 
         if (blockId === null || text === null) return
 
-        const idx: number = blocks.findIndex(b => b.id === blockId)
-
-        if (idx === -1) return
-
-        const block: Block = blocks[idx]
+        const block: Block = blocksById[blockId]
 
         const shortcuts: Map<String, BlockType> = new Map()
         shortcuts.set("1.", "ordered_list")
@@ -998,19 +1005,10 @@ export default function useEditor(pageId: number) {
             data.type = shortcuts.get(text.trimEnd())
         }
 
-        
+        updateBlock(blockId, {...data})
 
-        
-
-        setBlocks(prev => prev.map(b => {
-            if (b.id === block.id) {
-                return {
-                    ...b,
-                    ...data
-                }
-            }
-            return b
-        }))
+        cursorRef.current.delete(blockId)
+        focusAt(blockId, 0)
 
         await updateAPI(block.id, {
             type: data.type,
@@ -1019,35 +1017,20 @@ export default function useEditor(pageId: number) {
     }
     
 
+    //This fonction is still in working progress
     const handleTab = async (blockId: string) => {
-        const idx = blocks.findIndex(b => b.id === blockId)
 
-        if(idx < 1) return //Block can not become a child
+        const block = blocksById[blockId]
 
-        if(blocks[idx -1].type !== "text"){
-            toast.error("Can not be a child of type " + blocks[idx - 1].type)
+        if(block.type !== "text"){
+            toast.error("Can not be a child of type " + block.type)
             return
         }
 
-        updateBlock(blockId, {parentBlockId: blocks[idx - 1].id})
-        await updateAPI(blockId, { parentBlockId: blocks[idx - 1].id })
+        updateBlock(blockId, {parentBlockId: block.id})
+        
+        // await updateAPI(blockId, { parentBlockId: blocks[idx - 1].id })
     }
-
-    const childrenMap = useMemo(()=> {
-        const map = new Map<string, Block[]>()
-
-        for(const block of blocks){
-           if(!block.parentBlockId){
-            continue;
-           }
-
-           const children = map.get(block.parentBlockId) ?? []
-           children.push(block)
-           map.set(block.parentBlockId, children)
-        }
-
-        return map
-    }, [blocks])
 
     const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
     const handleEnterEvent = useEvent(handleEnter)
@@ -1069,9 +1052,7 @@ export default function useEditor(pageId: number) {
     return {
         state: {
             title,
-            blocks,
             focusedBlockId,
-            childrenMap
         },
 
         actions: {

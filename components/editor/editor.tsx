@@ -21,7 +21,7 @@ export default function Editor({ params }: EditorProps) {
         document.addEventListener("keydown", handler)
 
         return () => document.removeEventListener("keydown", handler)
-    }, [editor.state.blocks])
+    }, [])
 
     const handleFocus = useCallback((blockId: string) => {
         editor.actions.setFocusedBlockId(blockId)
@@ -58,14 +58,6 @@ export default function Editor({ params }: EditorProps) {
         handleRegisterRef,
     ])
 
-    const rendererState = useMemo(() => ({
-        blocks: editor.state.blocks,
-        childrenMap: editor.state.childrenMap,
-    }), [
-        editor.state.blocks,
-        editor.state.childrenMap,
-    ])
-
                         
     return (
         <EditorContext value={{editor}}>
@@ -86,8 +78,7 @@ export default function Editor({ params }: EditorProps) {
             <main
                 className="dark:bg-background max-w-5xl h-full m-auto select-text">
                 <BlockTree
-                    actions={rendererActions}
-                    state={rendererState}/>
+                    actions={rendererActions}/>
             </main>
         </div>
         </EditorContext>

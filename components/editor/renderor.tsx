@@ -1,9 +1,9 @@
-import { Clipboard, Copy, FileText, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Minus, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
+import { Clipboard, Copy, FileText, GripVertical, Heading1, Heading2, Heading3, ListChevronsDownUpIcon, ListIcon, ListOrdered, ListTodo, LucideIcon, Quote, RotateCwSquare, Trash, Type } from "lucide-react";
 import HeadingBlock from "./blocks/headingblock";
 import TextBlock from "./blocks/textblock";
 import { Block, BlockType } from "./types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { memo, ReactNode, useEffect } from "react";
+import { memo, ReactNode } from "react";
 import QuoteBlock from "./blocks/quoteblock";
 import ListBlock from "./blocks/listblock";
 import { Separator } from "../ui/separator";
@@ -11,7 +11,7 @@ import ToggleBlock from "./blocks/toggleblock";
 import { toast } from "sonner";
 import PageBlock from "./blocks/pageblock";
 
-export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId?: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
+export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: {children: ReactNode, blockId: string, onItemSelect?: (blockId: string, action: string) => void, onTypeSelect?: (type: BlockType)=> void,}) {
     
     const types: Array<{
         icon: LucideIcon
@@ -72,6 +72,7 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
 
     return (
         <div className={"flex items-center gap-2 flex-1 group"}>
+            {/* <span className="text-xs bg-white text-black shadow-sm px-2 rounded-3xl">{block.order}</span> */}
             <DropdownMenu>
                 <DropdownMenuTrigger>
                     <div className={`group-hover:visible group-focus:visible invisible py-1 rounded-sm cursor-grab text-gray-400 hover:bg-zinc-200 dark:hover:bg-zinc-700`}>
@@ -166,15 +167,11 @@ type BlockRendererProps = {
         onDelete?: (blockId: string) => void | Promise<void>
         onDuplicate?: (blockId: string) => void | Promise<void>
         onCopy?: (blockId: string) => void | Promise<void>
-        getNumberedListIndex(blocks: Block[], blockId: String): number
+        getNumberedListIndex(blockId: String): number
     }
 }
 
 function BlockRenderor(props: BlockRendererProps) {
-
-    useEffect(()=> {
-        console.log("Renderor is rerendoring")
-    })
 
     const handleBlockTypeChange = (type: BlockType) => {
         
@@ -319,7 +316,6 @@ function BlockRenderor(props: BlockRendererProps) {
                             <ToggleBlock
                                 block={props.block}
                                 {...actions}>
-                                    {/* {renderedChildren} */}
                             </ToggleBlock>
                         </BlockWrapper>
                     </div>
@@ -344,8 +340,6 @@ function BlockRenderor(props: BlockRendererProps) {
             return null
     }
 }
-
-
 
 export default memo(BlockRenderor)
 
