@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import useEditorStore from "@/stores/useEditorStore";
 import { api } from "@/api";
 
-const TITLE_INPUT_REF = "TITLE INPUT REF"
+const TITLE_INPUT = "TITLE INPUT REF"
 
 
 export default function useEditor(pageId: number) {
@@ -149,7 +149,7 @@ export default function useEditor(pageId: number) {
 
         if(e.ctrlKey){
             
-            if(key === "v" && focusedBlockId != TITLE_INPUT_REF){
+            if(key === "v" && focusedBlockId != TITLE_INPUT){
                 e.preventDefault()
 
                 navigator.clipboard.readText().then(text => {
@@ -203,13 +203,14 @@ export default function useEditor(pageId: number) {
         }
 
         if (key === "ArrowUp") {
+            e.preventDefault()
             setFocusedBlockId(prevId => {
 
                 if (!prevId) {
                     return blocks.length > 0 ? blocks[0].id : prevId
                 }
 
-                if(prevId === TITLE_INPUT_REF){
+                if(prevId === TITLE_INPUT){
                     return prevId
                 }
 
@@ -252,8 +253,8 @@ export default function useEditor(pageId: number) {
                 const offset = sel.anchorOffset
 
                 if (prevIndex === -1){
-                    focusAt(TITLE_INPUT_REF, offset)
-                    return TITLE_INPUT_REF
+                    focusAt(TITLE_INPUT, offset)
+                    return TITLE_INPUT
                 }else{
                     focusAt(blocks[prevIndex].id, offset)
                 }
@@ -264,6 +265,7 @@ export default function useEditor(pageId: number) {
         }
 
         if (key === "ArrowDown") {
+            e.preventDefault()
             setFocusedBlockId(prevId => {
                 if (prevId === null) return blocks[0].id
 
@@ -318,13 +320,20 @@ export default function useEditor(pageId: number) {
 
                 
                 const idx = blocks.findIndex(b => b.id === prevId)
-                if (prevId === null || idx === 0) return prevId
+                if (prevId === null || prevId === TITLE_INPUT) return prevId
 
             
                 const sel = window.getSelection()
                 if (!sel) return prevId
 
                 if (sel.anchorOffset !== 0) return prevId
+
+                if(idx === 0){
+                    const text = cursorRef.current.get(TITLE_INPUT)?.textContent
+
+                    focusAt(TITLE_INPUT, text ? text.length : 0)
+                    return TITLE_INPUT
+                }
 
                 let prevIndex: number
 
@@ -343,10 +352,24 @@ export default function useEditor(pageId: number) {
             setFocusedBlockId(prevId => {
 
                 const idx = blocks.findIndex(b => b.id === prevId)
+
                 if (prevId === null || idx === blocks.length - 1) return prevId
 
                 const sel = window.getSelection()
                 if (!sel) return prevId
+
+
+                if(prevId && prevId === TITLE_INPUT ){
+                    const title = cursorRef.current.get(TITLE_INPUT)?.textContent
+                    
+                    if(!title) return prevId
+                    
+                    const isCursorAtEnd = sel.anchorOffset === title.length
+                    if(!isCursorAtEnd) return prevId
+
+                    focusAt(blocks[0].id, 0)
+                    return blocks[0]
+                }
 
                 const current = blocks[idx]
 
@@ -736,6 +759,7 @@ export default function useEditor(pageId: number) {
     }
 
     function focusAt(blockId: string, offset: number) {
+        requestAnimationFrame(() => {
             const el = cursorRef.current.get(blockId)
 
             if (!el || !document.contains(el)) {
@@ -746,12 +770,11 @@ export default function useEditor(pageId: number) {
                 }
                 return
             }
-        
             el.focus()
 
 
             const selection = window.getSelection()
-            
+
             if (!selection) return
 
             const range = document.createRange()
@@ -764,6 +787,7 @@ export default function useEditor(pageId: number) {
 
             selection.removeAllRanges()
             selection.addRange(range)
+        })
     }
 
     async function createFirstBlock() {
@@ -947,7 +971,7 @@ export default function useEditor(pageId: number) {
     }
 
     const addTitleRef = (ref: HTMLDivElement)=> {
-        registerRef(TITLE_INPUT_REF, ref)
+        registerRef(TITLE_INPUT, ref)
     }
 
     const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
