@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import useEditorStore from "@/stores/useEditorStore";
 import { api } from "@/api";
 
+const TITLE_INPUT_REF = "TITLE INPUT REF"
+
 
 export default function useEditor(pageId: number) {
 
@@ -20,6 +22,7 @@ export default function useEditor(pageId: number) {
     const insertBlock = useEditorStore(state => state.insertBlock)
     const updateBlock = useEditorStore(state => state.updateBlock)
     const deleteBlock = useEditorStore(state => state.deleteBlock)
+
 
 
     useEffect(() => {
@@ -145,7 +148,8 @@ export default function useEditor(pageId: number) {
         const key: string = e.key
 
         if(e.ctrlKey){
-            if(key === "v"){
+            
+            if(key === "v" && focusedBlockId != TITLE_INPUT_REF){
                 e.preventDefault()
 
                 navigator.clipboard.readText().then(text => {
@@ -205,6 +209,10 @@ export default function useEditor(pageId: number) {
                     return blocks.length > 0 ? blocks[0].id : prevId
                 }
 
+                if(prevId === TITLE_INPUT_REF){
+                    return prevId
+                }
+
                 const idx = blocks.findIndex(b => b.id === prevId)
 
                 let prevIndex: number;
@@ -237,15 +245,19 @@ export default function useEditor(pageId: number) {
                     break
                 }
 
-                if (prevIndex === -1) return blocks[idx].id
-
                 const sel = window.getSelection()
 
                 if (!sel) return blocks[prevIndex].id
 
                 const offset = sel.anchorOffset
 
-                focusAt(blocks[prevIndex].id, offset)
+                if (prevIndex === -1){
+                    focusAt(TITLE_INPUT_REF, offset)
+                    return TITLE_INPUT_REF
+                }else{
+                    focusAt(blocks[prevIndex].id, offset)
+                }
+
                 return blocks[prevIndex].id
             }
             )
@@ -656,7 +668,7 @@ export default function useEditor(pageId: number) {
     const handleBackspace = async (blockId: string, cursorPos: number, text: string) => {
         if (cursorPos) return
         
-            const blocksById = useEditorStore.getState().blocksById
+        const blocksById = useEditorStore.getState().blocksById
 
         const blocks = Object.values(blocksById)
         blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
@@ -737,7 +749,9 @@ export default function useEditor(pageId: number) {
         
             el.focus()
 
+
             const selection = window.getSelection()
+            
             if (!selection) return
 
             const range = document.createRange()
@@ -932,6 +946,10 @@ export default function useEditor(pageId: number) {
         // await updateAPI(blockId, { parentBlockId: blocks[idx - 1].id })
     }
 
+    const addTitleRef = (ref: HTMLDivElement)=> {
+        registerRef(TITLE_INPUT_REF, ref)
+    }
+
     const handleArrowNavigationEvent = useEvent(handleArrowNavigation)
     const handleEnterEvent = useEvent(handleEnter)
     const handleDeleteBlockEvent = useEvent(handleDeleteBlock)
@@ -946,6 +964,7 @@ export default function useEditor(pageId: number) {
     const copyEvent = useEvent(copy)
     const handleSpaceEvent = useEvent(handleSpace)
     const handleTabEvent = useEvent(handleTab)
+    const handleTitleRef = useEvent(addTitleRef)
 
     
 
@@ -974,6 +993,9 @@ export default function useEditor(pageId: number) {
             handleDataChanges: handleDataChangesEvent,
             deleteBlock: handleDeleteBlockEvent,
             handleEnter: handleEnterEvent,
+        },
+        others: {
+            addTitleRef: handleTitleRef
         }
     }
 }

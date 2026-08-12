@@ -68,11 +68,13 @@ export default function Editor({ params }: EditorProps) {
                     onBlur={e => editor.actions.renamePageAPI(params.id, e.currentTarget.textContent)  }
                     value={editor.state.title}
                     requestFocus={editor.state.title.length == 0}
+                    onFocus={()=> editor.actions.setFocusedBlockId("TITLE INPUT REF")}
                     onKeyDown={e => {
                         if(e.key === "Enter"){
                             editor.actions.createFirstBlock()
                         }
                     }}
+                    registerRef={editor.others.addTitleRef}
                     className={cn("text-3xl font-bold", editor.state.title.length && "text-primary")}/>
             </header>
             <main
