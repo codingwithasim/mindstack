@@ -5,10 +5,13 @@ import { createContext, useCallback, useEffect, useMemo } from "react"
 import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
 import BlockTree from "./blockstree"
+import useEditorStore from "@/stores/useEditorStore"
 
 type EditorProps = {
     params: { id: number }
 }
+
+const TITLE_INPUT = "TITLE INPUT"
 
 export const EditorContext = createContext<any>(null)
 
@@ -65,13 +68,28 @@ export default function Editor({ params }: EditorProps) {
             <header className="pt-30 pb-4 pl-6 max-w-5xl m-auto">
                 <Editable
                     tag="h1"
-                    onBlur={e => editor.actions.renamePageAPI(params.id, e.currentTarget.textContent)  }
+                    onBlur={e => {
+                        if(params.id && e.currentTarget.textContent){
+                            editor.actions.renamePageAPI(params.id, e.currentTarget.textContent)
+                        }
+                    }  }
                     value={editor.state.title}
                     requestFocus={editor.state.title.length == 0}
-                    onFocus={()=> editor.actions.setFocusedBlockId("TITLE INPUT REF")}
+                    onFocus={()=> editor.actions.setFocusedBlockId(TITLE_INPUT)}
+                    onChange={(value)=> editor.others.setTitle(value.toString())}
                     onKeyDown={e => {
                         if(e.key === "Enter"){
-                            editor.actions.createFirstBlock()
+                            e.preventDefault()
+
+                            if(useEditorStore.getState().rootIds.length === 0){
+                                editor.actions.createFirstBlock()
+                            }else{
+                                const selection = window.getSelection()
+                                const offset = selection?.anchorOffset
+                                if(offset){
+                                    editor.actions.handleEnter(TITLE_INPUT, offset)
+                                }
+                            }
                         }
                     }}
                     registerRef={editor.others.addTitleRef}

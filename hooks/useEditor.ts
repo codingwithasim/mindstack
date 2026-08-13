@@ -7,14 +7,14 @@ import { toast } from "sonner";
 import useEditorStore from "@/stores/useEditorStore";
 import { api } from "@/api";
 
-const TITLE_INPUT = "TITLE INPUT REF"
+const TITLE_INPUT = "TITLE INPUT"
 
 
 export default function useEditor(pageId: number) {
 
     const [title, setTitle] = useState<string>("")
     const [focusedIndex, setFocusedIndex] = useState<number | null>(null)
-    const [focusedBlockId, setFocusedBlockId] = useState<string>()
+    const [focusedBlockId, setFocusedBlockId] = useState<string>(TITLE_INPUT)
     const cursorRef = useRef<Map<string, HTMLDivElement>>(new Map())
 
     const blocksById = useEditorStore(state => state.blocksById)
@@ -316,77 +316,76 @@ export default function useEditor(pageId: number) {
         }
 
         if (key === "ArrowLeft") {
-            setFocusedBlockId(prevId => {
 
-                
-                const idx = blocks.findIndex(b => b.id === prevId)
-                if (prevId === null || prevId === TITLE_INPUT) return prevId
+            if(!focusedBlockId) return
 
-            
-                const sel = window.getSelection()
-                if (!sel) return prevId
+            const idx = blocks.findIndex(b => b.id === focusedBlockId)
 
-                if (sel.anchorOffset !== 0) return prevId
+            if(focusedBlockId === TITLE_INPUT) return
 
-                if(idx === 0){
-                    const text = cursorRef.current.get(TITLE_INPUT)?.textContent
+            const sel = window.getSelection()
+            if (!sel) return
 
-                    focusAt(TITLE_INPUT, text ? text.length : 0)
-                    return TITLE_INPUT
-                }
+            if (sel.anchorOffset !== 0) return
 
-                let prevIndex: number
+            if(idx === 0){
+                const text = cursorRef.current.get(TITLE_INPUT)?.textContent
 
-                for (prevIndex = idx - 1; prevIndex >= 0; prevIndex--) {
-                    if (blocks[prevIndex].type !== "divider") break
-                }
+                focusAt(TITLE_INPUT, text ? text.length : 0)
+                return TITLE_INPUT
+            }
 
-                focusAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
+            let prevIndex: number
 
-                return blocks[prevIndex].id
-            })
+            for (prevIndex = idx - 1; prevIndex >= 0; prevIndex--) {
+                if (blocks[prevIndex].type !== "divider") break
+            }
+
+
+            focusAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
+            setFocusedBlockId(blocks[prevIndex].id)
 
         }
 
         if (key === "ArrowRight") {
-            setFocusedBlockId(prevId => {
+            
+            if(!focusedBlockId) return
 
-                const idx = blocks.findIndex(b => b.id === prevId)
-
-                if (prevId === null || idx === blocks.length - 1) return prevId
-
-                const sel = window.getSelection()
-                if (!sel) return prevId
+            const sel = window.getSelection()
+            if (!sel) return
 
 
-                if(prevId && prevId === TITLE_INPUT ){
-                    const title = cursorRef.current.get(TITLE_INPUT)?.textContent
-                    
-                    if(!title) return prevId
-                    
-                    const isCursorAtEnd = sel.anchorOffset === title.length
-                    if(!isCursorAtEnd) return prevId
+            if(focusedBlockId === TITLE_INPUT ){
+                const title = cursorRef.current.get(TITLE_INPUT)?.textContent
+                
+                if(!title) return
+                
+                const isCursorAtEnd = sel.anchorOffset === title.length
+                if(!isCursorAtEnd) return 
 
-                    focusAt(blocks[0].id, 0)
-                    return blocks[0]
-                }
+                focusAt(blocks[0].id, 0)
+                return blocks[0]
+            }
 
-                const current = blocks[idx]
+            const index = blocks.findIndex(b => b.id === focusedBlockId)
 
-                if(!current) return prevId
+            if(index === -1) return
 
-                if (sel.anchorOffset !== current.data.text.length) return prevId
+            const current = blocks[index]
 
-                let nextIndex: number
+            if(!current) return
 
-                for (nextIndex = idx + 1; nextIndex < blocks.length; nextIndex++) {
-                    if (blocks[nextIndex].type !== "divider") break
-                }
+            if (sel.anchorOffset !== current.data.text.length) return
 
-                focusAt(blocks[nextIndex].id, 0)
+            let nextIndex: number
 
-                return blocks[nextIndex].id
-            })
+            for (nextIndex = index + 1; nextIndex < blocks.length; nextIndex++) {
+                if (blocks[nextIndex].type !== "divider") break
+            }
+
+
+            setFocusedBlockId(blocks[nextIndex].id)
+            focusAt(blocks[nextIndex].id, 0)
         }
     }
 
@@ -397,7 +396,7 @@ export default function useEditor(pageId: number) {
             const pending = pendingFocusRef.current
 
             if (pending?.blockId === id) {
-                focusElementAt(el, pending.offset)
+                focusAt(id, pending.offset)
                 pendingFocusRef.current = null
             }
         } else {
@@ -463,6 +462,49 @@ export default function useEditor(pageId: number) {
         //     return
         // }
 
+
+        if(blockId === TITLE_INPUT){
+            const editor = useEditorStore.getState()
+            const firstBlockId = editor.rootIds[0]
+
+            if(!firstBlockId) return
+
+            const firstBlock = editor.blocksById[firstBlockId]
+
+            const newOrder = (parseFloat(firstBlock.order) / 2).toFixed(12)
+
+            const titleInput = cursorRef.current.get(TITLE_INPUT)
+
+            if(!titleInput || !titleInput.textContent) return
+            const text = titleInput.textContent
+
+            const timestamp = Date.now()
+            const id = crypto.randomUUID()
+
+            const newBlock: Block = {
+                id,
+                parentBlockId: null,
+                type: "text",
+                order: newOrder,
+                data: {
+                    text: text.slice(cursorPos)
+                },
+                createdAt: timestamp,
+                updatedAt: timestamp
+            }
+
+            setTitle(text.slice(0, cursorPos))
+            insertBlock(newBlock)
+            setFocusedBlockId(id)
+            focusAt(id, 0)
+
+            api.blocks.createBlock(pageId, newBlock).catch(error => {
+                console.error("Failed to create block:", error)
+            })
+            return            
+        }
+
+
         const blocks = Object.values(blocksById)
         blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
         
@@ -481,7 +523,7 @@ export default function useEditor(pageId: number) {
         }
 
         const nextBlock = blocks[currentIndex + 1]
-
+        
         //Convert list item to text if it has no text
         if (currentBlock.type.endsWith("list") && !currentBlock.data.text.length) {
             updateBlock(blockId, {type: "text"})
@@ -566,6 +608,7 @@ export default function useEditor(pageId: number) {
 
         }
 
+
         //Calculate the order of the new block
 
         const orderBefore = parseFloat(currentBlock.order)
@@ -593,34 +636,29 @@ export default function useEditor(pageId: number) {
             }
         })
 
-        insertBlock({
-            id: newBlocks[currentIndex + 1].id,
+        const newBlock = {
+            id: crypto.randomUUID(),
             type: newBlocks[currentIndex + 1].type,
             order: newOrder,
             data: { text: cursorAtEnd ? "" : afterText },
             parentBlockId: newBlocks[currentIndex + 1].parentBlockId,
             createdAt: Date.now(),
             updatedAt: Date.now()
-        })
+        }
+
+        insertBlock(newBlock)
 
         // setBlocks(newBlocks)
         setFocusedIndex(currentIndex + 1)
-        setFocusedBlockId(newBlocks[currentIndex + 1].id)
+        setFocusedBlockId(newBlock.id)
 
-        focusAt(newBlocks[currentIndex + 1].id, 0)
+        focusAt(newBlock.id, 0)
+
 
 
         //Call API
         try {
-             const res = await api.blocks.createBlock(pageId, {
-                id: newBlocks[currentIndex + 1].id,
-                type: newBlocks[currentIndex + 1].type,
-                order: newOrder,
-                data: { text: cursorAtEnd ? "" : afterText },
-                parentBlockId: newBlocks[currentIndex + 1].parentBlockId,
-                createdAt: Date.now(),
-                updatedAt: Date.now()
-            })
+             await api.blocks.createBlock(pageId, newBlock)
 
             //Edits the previous block if cursorAtEnd is false
             const type = newBlocks[currentIndex].type
@@ -720,7 +758,22 @@ export default function useEditor(pageId: number) {
             }
         }
 
-        if (idx <= 0) return
+        if (idx < 0) return
+
+        if(idx === 0 && !cursorPos){
+            const titleLength = title.length
+            setTitle(prevTitle => prevTitle + (text != null ? text : blocks[0].data.text))
+            useEditorStore.getState().deleteBlock(blockId)
+
+            try{
+                await api.blocks.deleteBlock(blockId)
+            }catch(err){
+                console.error(err)
+            }
+
+            focusAt(TITLE_INPUT, titleLength)
+            return
+        }
 
         let prevIndex: number;
 
@@ -768,10 +821,11 @@ export default function useEditor(pageId: number) {
                     blockId,
                     offset
                 }
+                
                 return
             }
             el.focus()
-
+            
 
             const selection = window.getSelection()
 
@@ -896,7 +950,6 @@ export default function useEditor(pageId: number) {
     }
 
     const handleSpace = async (blockId: string, text: string) => {
-
         if (blockId === null || text === null) return
 
         const block: Block = blocksById[blockId]
@@ -1019,7 +1072,8 @@ export default function useEditor(pageId: number) {
             handleEnter: handleEnterEvent,
         },
         others: {
-            addTitleRef: handleTitleRef
+            addTitleRef: handleTitleRef,
+            setTitle
         }
     }
 }
