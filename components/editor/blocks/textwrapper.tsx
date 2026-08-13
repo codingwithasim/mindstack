@@ -105,11 +105,6 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
                 }
 
                 if (e.key === "Backspace") {
-
-                    if (window.getSelection()?.anchorOffset == 0) {
-                        e.preventDefault()
-                    }
-
                     const text = inputRef.current?.textContent ?? draft
                     if (onBackspace) onBackspace(block.id, window.getSelection()?.anchorOffset ?? -1, text)
                 }

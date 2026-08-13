@@ -162,6 +162,21 @@ export default function useEditor(pageId: number) {
                     const currentBlock = blocks[currentBlockIndex]
                     const nextBlock = blocks[currentBlockIndex + 1]
 
+                    const newText = currentBlock.data.text + lines[0]
+                    if(lines.length ===1){
+                        useEditorStore.getState().updateBlock(focusedBlockId, {
+                            data: {
+                                text: newText
+                            }
+                        })
+                        requestAnimationFrame(()=> {
+                            requestAnimationFrame(() => {
+                                focusAt(focusedBlockId, newText.length)
+                            })
+                        })
+                        return
+                    }
+
                     const orderBefore = parseFloat(currentBlock.order)
                     const orderAfter = nextBlock ? parseFloat(nextBlock.order) : orderBefore + 1
                     let newOrder = ((orderBefore + orderAfter) / 2).toFixed(12)
@@ -331,8 +346,9 @@ export default function useEditor(pageId: number) {
             if(idx === 0){
                 const text = cursorRef.current.get(TITLE_INPUT)?.textContent
 
+                setFocusedBlockId(TITLE_INPUT)
                 focusAt(TITLE_INPUT, text ? text.length : 0)
-                return TITLE_INPUT
+                return 
             }
 
             let prevIndex: number
@@ -364,12 +380,12 @@ export default function useEditor(pageId: number) {
                 if(!isCursorAtEnd) return 
 
                 focusAt(blocks[0].id, 0)
-                return blocks[0]
+                return
             }
 
             const index = blocks.findIndex(b => b.id === focusedBlockId)
 
-            if(index === -1) return
+            if(index === -1 || index === blocks.length - 1) return
 
             const current = blocks[index]
 
@@ -382,7 +398,6 @@ export default function useEditor(pageId: number) {
             for (nextIndex = index + 1; nextIndex < blocks.length; nextIndex++) {
                 if (blocks[nextIndex].type !== "divider") break
             }
-
 
             setFocusedBlockId(blocks[nextIndex].id)
             focusAt(blocks[nextIndex].id, 0)
@@ -402,36 +417,6 @@ export default function useEditor(pageId: number) {
         } else {
             cursorRef.current.delete(id)
         }
-    }
-
-    function focusElementAt(el: HTMLDivElement, offset: number) {
-        el.focus()
-
-        const selection = window.getSelection()
-        if (!selection) return
-
-        const range = document.createRange()
-
-        const textNode = el.firstChild
-
-        if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
-            range.selectNodeContents(el)
-            range.collapse(true)
-
-            selection.removeAllRanges()
-            selection.addRange(range)
-            return
-        }
-
-        range.setStart(
-            textNode,
-            Math.min(offset, textNode.textContent?.length ?? 0)
-        )
-
-        range.collapse(true)
-
-        selection.removeAllRanges()
-        selection.addRange(range)
     }
 
     const enterKeyRef = useRef<number>(null)
@@ -689,7 +674,6 @@ export default function useEditor(pageId: number) {
         }
     }
 
-
     const handleDataChanges = async (block: Block) => {
 
         let data : Partial<{
@@ -727,6 +711,16 @@ export default function useEditor(pageId: number) {
     }
 
     const handleBackspace = async (blockId: string, cursorPos: number, text: string) => {
+        
+
+        const selection = window.getSelection()
+
+        if(!selection) return
+
+        const range = selection.getRangeAt(0)
+
+        if(range.startOffset != range.endOffset) return
+
         if (cursorPos) return
         
         const blocksById = useEditorStore.getState().blocksById
@@ -735,7 +729,7 @@ export default function useEditor(pageId: number) {
         blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
 
         const idx = blocks.findIndex(b => b.id === blockId)
-
+        
         if (["bullet_list", "ordered_list", "check_list", "quote", "toggle"].includes(blocks[idx].type)) {
             if (cursorPos === 0) {
                 updateBlock(blockId, {
@@ -949,21 +943,21 @@ export default function useEditor(pageId: number) {
         return await navigator.clipboard.writeText(textToCopy)
     }
 
+    const shortcuts: Map<String, BlockType> = new Map()
+    shortcuts.set("1.", "ordered_list")
+    shortcuts.set("-", "bullet_list")
+    shortcuts.set("?", "check_list")
+    shortcuts.set("#", "heading1")
+    shortcuts.set("##", "heading2")
+    shortcuts.set("###", "heading3")
+    shortcuts.set("---", "divider")
+    shortcuts.set(">", "toggle")
+
     const handleSpace = async (blockId: string, text: string) => {
         if (blockId === null || text === null) return
 
         const block: Block = blocksById[blockId]
-
-        const shortcuts: Map<String, BlockType> = new Map()
-        shortcuts.set("1.", "ordered_list")
-        shortcuts.set("-", "bullet_list")
-        shortcuts.set("?", "check_list")
-        shortcuts.set("#", "heading1")
-        shortcuts.set("##", "heading2")
-        shortcuts.set("###", "heading3")
-        shortcuts.set("---", "divider")
-        shortcuts.set(">", "toggle")
-
+        
         const data: Partial<{
             type: BlockType
             data: {
@@ -973,30 +967,38 @@ export default function useEditor(pageId: number) {
                 startingIndex?: number
             }
         }> = {
-            data: block.data,
+            data: {...block.data},
             type: block.type
         }
 
-        const trimmed:string = text.trimEnd()
+        const trimmed : string = text.trimEnd()
 
-        const match = trimmed.match(/^(\d+)\./)
+        const match = trimmed.match(/^(\d+)\.$/)
 
         if(match){
-            const value = match[0]
             data.type = "ordered_list"
             if(data.data){
                 data.data.startingIndex = Number(match[1])
             }
         }else{
             if (!shortcuts.has(trimmed)) return
+            
             if (data.data) {
                 data.data.text = ""
             }
 
-            data.type = shortcuts.get(text.trimEnd())
+            data.type = shortcuts.get(trimmed)
         }
 
-        updateBlock(blockId, {...data})
+        if(block.type.startsWith("heading") && data.type === "ordered_list") return
+        
+        updateBlock(blockId, data)
+
+        const el = cursorRef.current.get(blockId)
+
+        if (el) {
+            el.textContent = ""
+        }
 
         cursorRef.current.delete(blockId)
         focusAt(blockId, 0)

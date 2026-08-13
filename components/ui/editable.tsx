@@ -45,7 +45,7 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
                 selection!.addRange(range)
             }
         }
-    }, [value, tag])
+    }, [value, tag, defaultValue])
 
     useEffect(()=> {
         if(!divRef.current) return
