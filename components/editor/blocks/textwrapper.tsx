@@ -4,6 +4,7 @@ import Editable from "@/components/ui/editable";
 import { HTMLAttributes, memo, useCallback, useEffect, useRef, useState } from "react";
 import { Block } from "../types";
 import { cn } from "@/lib/utils";
+import RichTextEditor from "../rich-text-editor";
 
 export type TextWrapperProps = {
     onEnter?: (currentBlock: string, cursorPos: number, text?: string) => void
@@ -27,23 +28,18 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
     const { defaultValue, ...rest } = props
 
 
-    const commitChanges = useCallback(() => {
+    const commitChanges = useCallback((newBlock: Block) => {
         if (!onChange) return
         if (!inputRef.current) return
 
-        const nextText: string = (inputRef.current.textContent ?? "").trimStart()
+        const nextText: string = newBlock.data.text.trimStart()
 
         //Text has not changed yet
-        if (nextText === block.data.text) return
-
-        const resolvedData = {
-            ...block.data,
-            text: nextText
-        }
+        if (nextText === block.data.text && newBlock.data.styles === block.data.styles) return
 
         onChange({
             ...block,
-            data: resolvedData
+            data: newBlock.data
         })
     }, [inputRef.current, block.data.text])
 
@@ -56,16 +52,16 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
     }, [block.id, block])
 
     return (
-        <Editable
-            value={draft}
+        <RichTextEditor
+            block={block}
             onFocus={handleFocus}
             onChange={value => {
                 setDraft(value.toString())
             }}
-            onBlur={commitChanges}
+            onFocusExit={commitChanges}
             tag={tag}
             placeholder={placeholder}
-            className={cn("w-full bg-amber-200", props.className)}
+            className={cn("w-full", props.className)}
             registerRef={(el) => {
                 if (registerRef) registerRef(block.id, el)
                 if (!inputRef.current) {

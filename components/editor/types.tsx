@@ -9,6 +9,13 @@ export type Block = {
         opened?: boolean
         pageId?: number
         startingIndex?: number
+        styles?: 
+            {
+                start: number
+                end: number
+                styles: Record<string, any>
+            }[]
+        
     }
     createdAt: number
     updatedAt: number

@@ -6,6 +6,9 @@ import useEditor from "@/hooks/useEditor"
 import Editable from "../ui/editable"
 import BlockTree from "./blockstree"
 import useEditorStore from "@/stores/useEditorStore"
+import { Block } from "./types"
+import Textwrapper from "./blocks/textwrapper"
+import RichTextEditor from "./rich-text-editor"
 
 type EditorProps = {
     params: { id: number }
@@ -61,6 +64,58 @@ export default function Editor({ params }: EditorProps) {
         handleRegisterRef,
     ])
 
+
+    const dummyBlock: Block = {
+        id: "fake id",
+        order: "1",
+        parentBlockId: null,
+        type: "text",
+        data: {
+            text: "A quick brown fox jumps over the lazy dog.",
+            styles: [
+                {
+                    start: 2,
+                    end: 7,
+                    styles: {
+                        bold: true,
+                        italic: true
+                    } 
+                },
+                {
+                    start: 8,
+                    end: 22,
+                    styles: {
+                        color: "red"
+                    }
+                },
+                {
+                    start: 14,
+                    end: 17,
+                    styles: {
+                        italic: true
+                    } 
+                },
+                {
+                    start: 18,
+                    end: 23,
+                    styles: {
+                        underline: true,
+                        overline: false,
+                    } 
+                },
+                {
+                    start: 29,
+                    end: 32,
+                    styles: {
+                        strikethrough: true
+                    }
+                },
+            ]
+        },
+        updatedAt: Date.now(),
+        createdAt: Date.now()
+    }
+
                         
     return (
         <EditorContext value={{editor}}>
@@ -97,6 +152,10 @@ export default function Editor({ params }: EditorProps) {
             </header>
             <main
                 className="dark:bg-background max-w-5xl h-full m-auto select-text">
+                {/* <RichTextEditor
+                    className="px-7 py-2"
+                    block={dummyBlock}
+                /> */}
                 <BlockTree
                     actions={rendererActions}/>
             </main>

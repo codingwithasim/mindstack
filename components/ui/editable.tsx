@@ -1,11 +1,11 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { FormEvent, HTMLAttributes, useEffect, useLayoutEffect, useRef, useState } from "react"
-
+import { FormEvent, ForwardedRef, forwardRef, HTMLAttributes, KeyboardEventHandler, ReactElement, ReactEventHandler, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 type EditableProps = {
     value?: string
+    manageContent?: boolean
     defaultValue?: string
     onChange?: (value: string) => void,
     className?: string
@@ -15,13 +15,15 @@ type EditableProps = {
     placeholder?: string
 } & HTMLAttributes<HTMLDivElement>
 
-export default function Editable({ value: controlledValue, defaultValue = "", placeholder = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps) {
+function Editable({manageContent = true, value: controlledValue, defaultValue = "", placeholder = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps, ref: ForwardedRef<HTMLDivElement>) {
     const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
     const divRef = useRef<HTMLDivElement>(null)
     const isControlled = controlledValue !== undefined
     const value = isControlled ? controlledValue : uncontrolledValue
 
     useLayoutEffect(() => {
+        if(!manageContent) return
+        
         const node = divRef.current
         if (!node) return
         const nextValue = value ?? ""
@@ -45,7 +47,17 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
                 selection!.addRange(range)
             }
         }
-    }, [value, tag, defaultValue])
+    }, [value, tag, defaultValue, manageContent])
+
+    const setEditorRef = (node: HTMLDivElement | null) => {
+        divRef.current = node
+
+        if (typeof ref === "function") {
+            ref(node)
+        } else if (ref) {
+            ref.current = node
+        }
+    }
 
     useEffect(()=> {
         if(!divRef.current) return
@@ -61,8 +73,11 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
             divRef.current.focus()
         }
     }, [requestFocus])
-
+        
     const handleInput = (e: FormEvent<HTMLDivElement>) => {
+
+        if(!manageContent) return
+
         const nextValue = e.currentTarget.textContent ?? ""
         if (!isControlled) {
             setUncontrolledValue(nextValue)
@@ -87,11 +102,14 @@ export default function Editable({ value: controlledValue, defaultValue = "", pl
             tabIndex={0}
             aria-multiline="true"
             data-placeholder={placeholder}
-            role="textbox"
-            ref={divRef}
             onInput={handleInput}
+            role="textbox"
+            ref={setEditorRef}
             suppressContentEditableWarning
             {...props}
-        />
+        >
+        </Tag>
     )
 }
+
+export default forwardRef(Editable)
