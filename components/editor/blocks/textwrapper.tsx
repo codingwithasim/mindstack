@@ -1,13 +1,12 @@
 "use client"
 
-import Editable from "@/components/ui/editable";
 import { HTMLAttributes, memo, useCallback, useEffect, useRef, useState } from "react";
 import { Block } from "../types";
 import { cn } from "@/lib/utils";
 import RichTextEditor from "../rich-text-editor";
 
 export type TextWrapperProps = {
-    onEnter?: (currentBlock: string, cursorPos: number, text?: string) => void
+    onEnter?: (currentBlock: string, cursorPos: number, block?: Block) => void
     onChange?: (block: Block) => void
     onBlockFocus?: (blockId: string) => void
     onBackspace?: (id: string, cursorPos: number, text: string) => void
@@ -32,7 +31,7 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
         if (!onChange) return
         if (!inputRef.current) return
 
-        const nextText: string = newBlock.data.text.trimStart()
+        const nextText: string = newBlock.data.text
 
         //Text has not changed yet
         if (nextText === block.data.text && newBlock.data.styles === block.data.styles) return
@@ -68,20 +67,20 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
                     inputRef.current = el
                 }
             }}
+            onEnter={(block, selection) => {
+                if (onEnter) {
+                    setDraft(prev => block.data.text)
+
+                    commitChanges(block)
+
+                    onEnter(block.id, selection.start, block)
+                }
+            }}
             onKeyDown={e => {
                 if (e.key === "Enter") {
                     e.preventDefault()
 
-                    if (onEnter) {
-
-
-                        const selection = window.getSelection()
-                        setDraft(prev => prev.slice(0, selection?.anchorOffset ?? prev.length))
-
-                        commitChanges()
-
-                        onEnter(block.id, selection?.anchorOffset ?? -1, draft)
-                    }
+                    
                 }
 
                 if (e.key === "Tab") {

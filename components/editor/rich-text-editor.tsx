@@ -4,6 +4,10 @@ import { Block } from "./types";
 import { useTheme } from "next-themes";
 
 
+type SelectionOffsets = {
+    start: number
+    end: number
+}
 
 type RichEditorProps = {
     block: Block
@@ -15,6 +19,7 @@ type RichEditorProps = {
     tag?: string
     placeholder?: string
     onFocusExit?: (block: Block) => void
+    onEnter?: (block: Block, selection: SelectionOffsets) => void
 } & HTMLAttributes<HTMLDivElement>
 
 type TextStyleRange = {
@@ -27,7 +32,9 @@ const colors = {
     "#FFFF8F" : "#6B6B22"
 }
 
-function RichTextEditor({block, onFocusExit, ...props}: RichEditorProps){
+function RichTextEditor(editorProps: RichEditorProps){
+
+    const {block, onFocusExit, onEnter, ...props} = editorProps
 
     const editorRef = useRef<HTMLDivElement>(null)
     const [styles, setStyles] = useState<TextStyleRange[] | undefined>(block.data.styles)
@@ -36,14 +43,25 @@ function RichTextEditor({block, onFocusExit, ...props}: RichEditorProps){
 
     const { resolvedTheme } = useTheme()
 
+
     useEffect(()=> {
         if(!text || !editorRef.current) return
-
         editorRef.current.innerHTML = renderStyles(text, styles)
-        
     }, [resolvedTheme])
 
-    const calcSelection = (root: HTMLDivElement): {start: number, end: number} | undefined => {
+    useEffect(()=> {
+        if(!editorRef.current) return
+
+        const newText = block.data.text
+        const newStyles = block.data.styles
+
+        setText(newText)
+        setStyles(newStyles)
+
+        editorRef.current.innerHTML = renderStyles(newText, newStyles)        
+    }, [resolvedTheme, block])
+
+    const calcSelection = (root: HTMLDivElement): SelectionOffsets | undefined => {
         const selection = window.getSelection()
                 
         if(!selection || selection.rangeCount === 0 || !editorRef.current) return
@@ -144,9 +162,62 @@ function RichTextEditor({block, onFocusExit, ...props}: RichEditorProps){
         return newStyles
     }
 
+    function deleteSelection(text: string, styles: TextStyleRange[], selection: SelectionOffsets){
+        
+        const {start, end} = selection
+        const newStyles: TextStyleRange[] = []
+
+        const delta = end - start
+
+        for(const style of styles){
+
+            //style before selection, nothing changes
+            if(style.end <= start) {
+                newStyles.push(style)
+                continue
+            }
+
+            skipNextModelUpdate.current = true
+
+            //style after selection
+            if(style.start >= end){
+                newStyles.push(
+                    {
+                        ...style,
+                        start: style.start - delta,
+                        end: style.end - delta
+                    }
+                )
+                continue
+            }
+
+            //keep the part before selection
+            if(style.start < start){
+                newStyles.push(
+                    {
+                        ...style,
+                        end: start
+                    }
+                )
+            }
+
+            //keep the part after selection
+            if(style.end > end){
+                newStyles.push(
+                    {
+                        ...style,
+                        start,
+                        end: style.end - delta
+                    }
+                )
+            }
+        }
+
+        return newStyles
+    }
+
     useEffect(()=> {
         if(!styles) return
-        console.log(styles);
     }, [styles])
 
     const handleKeyDown = (root: KeyboardEvent) => {
@@ -218,61 +289,40 @@ function RichTextEditor({block, onFocusExit, ...props}: RichEditorProps){
             return
         }
 
-        if(key === "backspace"){
+        if(key === "backspace" || key === "delete"){
             const offsets = calcSelection(editorRef.current)
 
             if(!styles || !offsets || offsets.start === offsets.end) return
 
-            const {start, end} = offsets
-            const newStyles: TextStyleRange[] = []
 
-            const delta = end - start
+            setStyles(deleteSelection(text, styles, offsets))
+        }
 
-            for(const style of styles){
+        if(key === "enter"){
+            if(!onEnter) return
 
-                //style before selection, nothing changes
-                if(style.end <= start) {
-                    newStyles.push(style)
-                    continue
-                }
+            const offsets = calcSelection(editorRef.current)
+            if(!offsets) return
 
-                skipNextModelUpdate.current = true
+            let newStyles = styles
+            let newText = text
 
-                //style after selection
-                if(style.start >= end){
-                    newStyles.push(
-                        {
-                            ...style,
-                            start: style.start - delta,
-                            end: style.end - delta
-                        }
-                    )
-                    continue
-                }
+            if(offsets.start !== offsets.end){
+                newStyles = deleteSelection(text, styles ?? [], offsets)
+                newText = text.slice(0, offsets.start) + text.slice(offsets.end)
+            }
 
-                //keep the part before selection
-                if(style.start < start){
-                    newStyles.push(
-                        {
-                            ...style,
-                            end: start
-                        }
-                    )
-                }
-
-                //keep the part after selection
-                if(style.end > end){
-                    newStyles.push(
-                        {
-                            ...style,
-                            start,
-                            end: style.end - delta
-                        }
-                    )
+            const newBlock: Block = {
+                ...block,
+                data: {
+                    ...block.data,
+                    styles: newStyles,
+                    text: newText
                 }
             }
 
-            setStyles(newStyles)
+
+            onEnter(newBlock, offsets)
         }
     }
 
@@ -443,15 +493,13 @@ function RichTextEditor({block, onFocusExit, ...props}: RichEditorProps){
             return prev.map(style => {
                 const newStyle = {...style}
 
-                if(style.start >= offset){
+                if(style.start >= offset - 1){
                     newStyle.start += delta
                 }
 
-                if(style.end >= offset){
+                if(style.end >= offset - 1){
                     newStyle.end += delta
                 }
-                console.log(newStyle);
-                
                 return newStyle
             })
         })

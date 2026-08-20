@@ -137,6 +137,129 @@ export default function useEditor(pageId: number) {
         ]
     }
 
+    const splitBlockIntoTwo = (block: Block, offset: number): {firstBlock: Block, secondBlock: Block} | undefined => {
+        
+        const blocks = Object.values(useEditorStore.getState().blocksById)
+        blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
+        
+        const idx = blocks.findIndex(b => b.id === block.id)
+        if(idx === -1) return
+
+        const next: Block = blocks[idx + 1]
+        const isHeading = block.type === "heading1" || block.type === "heading2" || block.type === "heading3"
+
+        const cursorOffset = Math.max(0, Math.min(offset, block.data.text.length))
+
+        //Calculate new order for block
+        const orderBefore = parseFloat(block.order) || 0
+        const orderAfter = next ? parseFloat(next.order) : orderBefore + 1
+        let newOrderNum = ((orderBefore + orderAfter) / 2)
+
+        if (newOrderNum === orderBefore || newOrderNum === orderAfter) {
+            newOrderNum += 0.000001
+        }
+
+        const newOrder = newOrderNum.toFixed(12)
+
+        let secondBlockData: Partial<{
+            text: string
+            checked: boolean
+            opened: boolean
+            styles: any[]
+        }> = {}
+
+        secondBlockData.text = block.data.text.slice(cursorOffset)
+
+        if (block.type === "check_list") {
+            secondBlockData.checked = false
+        }
+
+        let newType: BlockType = "text"
+        
+        if(isHeading && cursorOffset === 0){
+            newType = block.type
+        }
+
+        if(["check_list", "bullet_list", "ordered_list"].includes(block.type)){
+            newType = block.type
+        }
+
+        if(block.type === "toggle") {
+            newType = block.type
+            secondBlockData.opened = false
+        }
+        
+        const styles = block.data.styles ?? []
+
+        const firstBlockStyles = []
+        const newBlockStyles = []
+
+        for(const style of styles){
+            const {start, end} = style
+            
+            //style range comes before the cursor
+            if(end <= cursorOffset){
+                firstBlockStyles.push(style)
+                continue
+            }
+
+            //style range comes after the cursor so it goes into the next block
+            if(start >= cursorOffset){
+                //subtract the offset from the range
+                newBlockStyles.push({
+                    ...style,
+                    start: style.start - cursorOffset,
+                    end: style.end - cursorOffset
+                })
+                continue
+            }
+
+            //split the range otherwise
+            firstBlockStyles.push({
+                ...style,
+                end: cursorOffset
+            })
+
+            newBlockStyles.push({
+                ...style,
+                start: 0,
+                end: style.end - cursorOffset
+            })
+        }
+
+        secondBlockData.styles = newBlockStyles
+
+        const timestamp = Date.now()
+
+        const firstBlock: Block = {
+            ...block, 
+            data: {
+                ...block.data,
+                styles: firstBlockStyles,
+                text: block.data.text.slice(0, cursorOffset),
+            },
+            type: cursorOffset === 0 && block.type.startsWith("heading") ? "text" : block.type,
+            updatedAt: timestamp
+        }
+
+        const secondBlock: Block = {
+            id: crypto.randomUUID(),
+            parentBlockId: block.parentBlockId,
+            type: newType,
+            order: newOrder,
+            data: {
+                ...secondBlockData
+            },
+            createdAt: timestamp,
+            updatedAt: timestamp
+        }
+        
+        return {
+            firstBlock: firstBlock,
+            secondBlock: secondBlock
+        }
+    }
+
     /**========================= Client functions =========================== */
 
 
@@ -429,7 +552,7 @@ export default function useEditor(pageId: number) {
         offset: number
     } | null>(null)
 
-    const handleEnter = async (blockId: string, cursorPos: number, text?: string) => {
+    const handleEnter = async (blockId: string, cursorPos: number, block?: Block) => {
 
         // if(!enterKeyRef.current){
         //     enterKeyRef.current = Date.now()
@@ -501,12 +624,8 @@ export default function useEditor(pageId: number) {
 
         let currentBlock = blocks[currentIndex]
 
-        if (text !== undefined) {
-            currentBlock = {
-                ...currentBlock, data: {
-                    ...currentBlock.data, text
-                }
-            }
+        if (block) {
+            currentBlock = block
         }
 
         const nextBlock = blocks[currentIndex + 1]
@@ -613,45 +732,42 @@ export default function useEditor(pageId: number) {
         //Checks if cursor is at the end of the line
         const cursorAtEnd = workingBlocks[currentIndex].data.text.length === cursorPos
 
-        const newBlocks: Block[] = splitBlock(workingBlocks, blockId, cursorPos)
+        const splitBlocks = splitBlockIntoTwo(currentBlock, cursorPos)
 
+        if(!splitBlocks) return
+
+        
         updateBlock(blockId, {
-            ...blocksById[blockId],
+            ...currentBlock,
+            updatedAt: Date.now(),
             data: {
-                ...blocksById[blockId].data,
-                text: beforeText
+                ...splitBlocks.firstBlock.data
             }
         })
 
-        const newBlock = {
-            id: crypto.randomUUID(),
-            type: newBlocks[currentIndex + 1].type,
-            order: newOrder,
-            data: { text: cursorAtEnd ? "" : afterText },
-            parentBlockId: newBlocks[currentIndex + 1].parentBlockId,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        }
+
+        console.log("prev");
+        console.log(splitBlocks.firstBlock);
+        
+        
+        const newBlock = splitBlocks.secondBlock
 
         insertBlock(newBlock)
 
-        // setBlocks(newBlocks)
         setFocusedIndex(currentIndex + 1)
         setFocusedBlockId(newBlock.id)
 
         focusAt(newBlock.id, 0)
 
-
-
-        //Call API
+        // Call API
         try {
              await api.blocks.createBlock(pageId, newBlock)
 
             //Edits the previous block if cursorAtEnd is false
-            const type = newBlocks[currentIndex].type
+            const type = splitBlocks.firstBlock.type
 
             if (!cursorAtEnd) {
-                await api.blocks.updateBlock(blockId, { data: { text: beforeText }, type })
+                await api.blocks.updateBlock(blockId, { data: {...splitBlocks.firstBlock.data}, type })
             }
         } catch (err) {
             console.log("Failed to split block", err)

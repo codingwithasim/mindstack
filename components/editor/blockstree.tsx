@@ -54,10 +54,6 @@ export default function BlockTree(props: TreeProps) {
 
 const BlockNode = memo((props: BlockNodeProps) => {
 
-    useEffect(() => {
-        console.log("BlockNode re-rendering...");
-    })
-
     const currentBlock = useEditorStore(state => state.getBlock(props.blockId))
     const children = useEditorStore(state => state.childrenByParentId[props.blockId] ?? EMPTY_LIST)
 

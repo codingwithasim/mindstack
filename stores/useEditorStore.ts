@@ -54,6 +54,7 @@ const useEditorStore = create<EditorState>((set, get) => ({
     },
 
     updateBlock: (id, update) => {
+
         set(state => ({
             blocksById: {
                 ...state.blocksById,
