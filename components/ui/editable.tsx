@@ -92,7 +92,7 @@ function Editable({manageContent = true, value: controlledValue, defaultValue = 
 
     const Tag = tag
 
-    const defaultClasses = "py-1 outline-none before:absolute before:h-full before:left-0" +
+    const defaultClasses = "outline-none before:absolute before:h-full before:left-0" +
         "before:top-0 before:pointer-events-none before:text-placeholder empty:before:content-[attr(data-placeholder)]"
         
     return (

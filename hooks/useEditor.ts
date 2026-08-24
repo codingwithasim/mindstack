@@ -262,6 +262,29 @@ export default function useEditor(pageId: number) {
 
     /**========================= Client functions =========================== */
 
+    function getCursorOffset(root: Node): number | null {
+            const selection = window.getSelection()
+    
+            if (!selection || selection.rangeCount === 0) {
+                return null
+            }
+    
+            const range = selection.getRangeAt(0)
+    
+            if (!root.contains(range.startContainer)) {
+                return null
+            }
+    
+            const beforeCursor = document.createRange()
+    
+            beforeCursor.selectNodeContents(root)
+            beforeCursor.setEnd(
+                range.startContainer,
+                range.startOffset
+            )
+    
+            return beforeCursor.toString().length
+        }
 
 
     const handleArrowNavigation = (e: KeyboardEvent) => {
@@ -271,6 +294,13 @@ export default function useEditor(pageId: number) {
         blocks.sort((a, b) => parseFloat(a.order) - parseFloat(b.order))
 
         const key: string = e.key
+
+        const root = cursorRef.current.get(focusedBlockId)
+        if(!root) return
+
+        const offset = getCursorOffset(root)
+
+        if (offset === null) return
 
         if(e.ctrlKey){
             
@@ -386,17 +416,11 @@ export default function useEditor(pageId: number) {
                     break
                 }
 
-                const sel = window.getSelection()
-
-                if (!sel) return blocks[prevIndex].id
-
-                const offset = sel.anchorOffset
-
                 if (prevIndex === -1){
-                    focusAt(TITLE_INPUT, offset)
+                    setCursorAt(TITLE_INPUT, offset)
                     return TITLE_INPUT
                 }else{
-                    focusAt(blocks[prevIndex].id, offset)
+                    setCursorAt(blocks[prevIndex].id, offset)
                 }
 
                 return blocks[prevIndex].id
@@ -444,13 +468,8 @@ export default function useEditor(pageId: number) {
 
                 if (nextIndex === blocks.length) return prevId
 
-                const sel = window.getSelection()
-
-                if (!sel) return blocks[nextIndex].id
-
-                const offset = sel.anchorOffset
-
                 focusAt(blocks[nextIndex].id, offset)
+                setCursorAt(blocks[nextIndex].id, offset)
                 return blocks[nextIndex].id
             })
         }
@@ -463,10 +482,7 @@ export default function useEditor(pageId: number) {
 
             if(focusedBlockId === TITLE_INPUT) return
 
-            const sel = window.getSelection()
-            if (!sel) return
-
-            if (sel.anchorOffset !== 0) return
+            if (offset !== 0) return
 
             if(idx === 0){
                 const text = cursorRef.current.get(TITLE_INPUT)?.textContent
@@ -483,7 +499,7 @@ export default function useEditor(pageId: number) {
             }
 
 
-            focusAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
+            setCursorAt(blocks[prevIndex].id, blocks[prevIndex].data.text.length)
             setFocusedBlockId(blocks[prevIndex].id)
 
         }
@@ -492,16 +508,12 @@ export default function useEditor(pageId: number) {
             
             if(!focusedBlockId) return
 
-            const sel = window.getSelection()
-            if (!sel) return
-
-
             if(focusedBlockId === TITLE_INPUT ){
                 const title = cursorRef.current.get(TITLE_INPUT)?.textContent
                 
                 if(!title) return
                 
-                const isCursorAtEnd = sel.anchorOffset === title.length
+                const isCursorAtEnd = offset === title.length
                 if(!isCursorAtEnd) return 
 
                 focusAt(blocks[0].id, 0)
@@ -516,7 +528,7 @@ export default function useEditor(pageId: number) {
 
             if(!current) return
 
-            if (sel.anchorOffset !== current.data.text.length) return
+            if (offset !== current.data.text.length) return
 
             let nextIndex: number
 
@@ -525,7 +537,7 @@ export default function useEditor(pageId: number) {
             }
 
             setFocusedBlockId(blocks[nextIndex].id)
-            focusAt(blocks[nextIndex].id, 0)
+            setCursorAt(blocks[nextIndex].id, 0)
         }
     }
 
@@ -745,11 +757,6 @@ export default function useEditor(pageId: number) {
             }
         })
 
-
-        console.log("prev");
-        console.log(splitBlocks.firstBlock);
-        
-        
         const newBlock = splitBlocks.secondBlock
 
         insertBlock(newBlock)
@@ -828,33 +835,27 @@ export default function useEditor(pageId: number) {
         })
     }
 
-    const handleBackspace = async (blockId: string, cursorPos: number, text: string) => {
-        
-
-        const selection = window.getSelection()
-
-        if(!selection) return
-
-        const range = selection.getRangeAt(0)
-
-        if(range.startOffset != range.endOffset) return
+    const handleBackspace = async (blockId: string, cursorPos: number, block?: Block) => {
 
         if (cursorPos) return
-        
         const blocksById = useEditorStore.getState().blocksById
 
         const blocks = Object.values(blocksById)
         blocks.sort((b1, b2) => parseFloat(b1.order) - parseFloat(b2.order))
 
         const idx = blocks.findIndex(b => b.id === blockId)
+
+        const text = block?.data.text ?? null
         
+        
+
         if (["bullet_list", "ordered_list", "check_list", "quote", "toggle"].includes(blocks[idx].type)) {
             if (cursorPos === 0) {
                 updateBlock(blockId, {
                     type: "text",
                     data: {
                         ...blocks[idx].data,
-                        text
+                        text: block?.data.text ?? blocks[idx].data.text
                     }
                 })
 
@@ -864,7 +865,7 @@ export default function useEditor(pageId: number) {
 
                 await api.blocks.updateBlock(blockId, { type: "text", data: {
                         ...blocks[idx].data,
-                        text
+                        text: block?.data.text ?? blocks[idx].data.text
                     } })
                 return;
             }
@@ -899,10 +900,26 @@ export default function useEditor(pageId: number) {
 
         const prevBlock = blocks[prevIndex]
 
+        const delta = prevBlock.data.text.length
+        const modifiedStyles = (blocks[idx].data.styles ?? []).map(style => {
+            return {
+                ...style,
+                start: style.start + delta,
+                end: style.end + delta
+            }
+        })
+        
+        
+
         const resolvedData = {
             ...prevBlock.data,
-            text: prevBlock.data.text + text
+            text: prevBlock.data.text + text,
+            styles: [
+                ...prevBlock.data.styles ?? [],
+                ...modifiedStyles
+            ] 
         }
+
 
         const merged: Block = {
                 ...prevBlock,
@@ -923,7 +940,59 @@ export default function useEditor(pageId: number) {
         await api.blocks.deleteBlock(blockId)
     }
 
+    function setCursorAt(blockId: string, offset: number) {
+        requestAnimationFrame(() => {
+
+             const root = cursorRef.current.get(blockId)
+
+            if (!root || !document.contains(root)) {
+                cursorRef.current.delete(blockId)
+                pendingFocusRef.current = {
+                    blockId,
+                    offset
+                }
+                
+                return
+            }
+
+            root.focus()
+
+            const selection = window.getSelection()
+
+            if (!selection) return
+
+            const walker = document.createTreeWalker(
+                root,
+                NodeFilter.SHOW_TEXT
+            )
+
+            let remaining = offset
+            let node: Node | null
+
+            while((node = walker.nextNode())){
+                if(node){
+                    const length = node.textContent?.length ?? 0
+
+                    if(remaining <= length){
+                        const range = document.createRange()
+
+                        range.setStart(node, remaining)
+                        range.collapse(true)
+
+                        selection.removeAllRanges()
+                        selection.addRange(range)
+
+                        return
+                    }
+
+                    remaining -= length
+                }
+            }
+        })
+    }
+
     function focusAt(blockId: string, offset: number) {
+
         requestAnimationFrame(() => {
             const el = cursorRef.current.get(blockId)
 

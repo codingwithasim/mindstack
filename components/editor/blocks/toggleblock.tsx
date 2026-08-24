@@ -7,10 +7,6 @@ import React, { memo, useEffect } from "react";
 
 function ToggleBlock({children, ...props}: TextWrapperProps) {
 
-    useEffect(()=> {
-        console.log("rerender from toggle ");    
-    })
-
     const handleStateChange = (opened: boolean) => {
         if(!props.onChange) return
         
@@ -28,14 +24,6 @@ function ToggleBlock({children, ...props}: TextWrapperProps) {
                     </div>
                     <TextWrapper className="w-full font-medium" placeholder="Toggle" {...props} />
                 </div>
-
-
-            {/* <div className="flex flex-col pl-4 w-full before:left-3 before:absolute before:text-gray-300 before:content[''] before:w-px before:h-[calc(100%-10px)] before:top-0  before:border-l relative"> */}
-            {/* <div className="flex flex-col pl-4 w-full transition-all pb-2">
-                {
-                    props.block.data.opened && children
-                }
-            </div> */}
         </div>
     )
 }

@@ -7,8 +7,6 @@ import Editable from "../ui/editable"
 import BlockTree from "./blockstree"
 import useEditorStore from "@/stores/useEditorStore"
 import { Block } from "./types"
-import Textwrapper from "./blocks/textwrapper"
-import RichTextEditor from "./rich-text-editor"
 
 type EditorProps = {
     params: { id: number }
@@ -89,27 +87,12 @@ export default function Editor({ params }: EditorProps) {
                     }
                 },
                 {
-                    start: 14,
-                    end: 17,
+                    start: 38,
+                    end: 41,
                     styles: {
-                        italic: true
-                    } 
-                },
-                {
-                    start: 18,
-                    end: 23,
-                    styles: {
-                        underline: true,
-                        overline: false,
-                    } 
-                },
-                {
-                    start: 29,
-                    end: 32,
-                    styles: {
-                        strikethrough: true
+                        link: "google.com"  
                     }
-                },
+                }
             ]
         },
         updatedAt: Date.now(),

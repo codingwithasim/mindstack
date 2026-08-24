@@ -7,8 +7,8 @@ const EMPTY_LIST: string[] = []
 
 type TreeProps = {
     actions: {
-        onEnter: (blockId: string, cursorPos: number, text?: string) => void
-        onBackspace: (blockId: string, cursorPos: number, text: string) => void
+        onEnter: (blockId: string, cursorPos: number, block?: Block) => void
+        onBackspace: (blockId: string, cursorPos: number, block: Block) => void
         onBlockFocus: (blockId: string) => void
         onChange?: (block: Block) => void
         onSpace?: (blockId: string, text: string) => void

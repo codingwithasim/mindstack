@@ -20,6 +20,7 @@ type RichEditorProps = {
     placeholder?: string
     onFocusExit?: (block: Block) => void
     onEnter?: (block: Block, selection: SelectionOffsets) => void
+    onBackpress?: (block: Block, selection: SelectionOffsets) => void
 } & HTMLAttributes<HTMLDivElement>
 
 type TextStyleRange = {
@@ -34,7 +35,7 @@ const colors = {
 
 function RichTextEditor(editorProps: RichEditorProps){
 
-    const {block, onFocusExit, onEnter, ...props} = editorProps
+    const {block, onFocusExit, onBackpress, onEnter, ...props} = editorProps
 
     const editorRef = useRef<HTMLDivElement>(null)
     const [styles, setStyles] = useState<TextStyleRange[] | undefined>(block.data.styles)
@@ -42,7 +43,6 @@ function RichTextEditor(editorProps: RichEditorProps){
     const skipNextModelUpdate = useRef<boolean>(false)
 
     const { resolvedTheme } = useTheme()
-
 
     useEffect(()=> {
         if(!text || !editorRef.current) return
@@ -76,6 +76,17 @@ function RichTextEditor(editorProps: RichEditorProps){
         const startRange = document.createRange()
         startRange.selectNodeContents(root)
         startRange.setEnd(startContainer, startOffset)
+
+        console.log(
+            {
+                startOffset,
+                endOffset,
+                startRange
+            }
+        );
+        
+        console.log(startRange.toString().length);
+        
 
         const endRange = document.createRange()
         endRange.selectNodeContents(root)
@@ -162,6 +173,54 @@ function RichTextEditor(editorProps: RichEditorProps){
         return newStyles
     }
 
+    function setSelection(root: HTMLDivElement, selection: SelectionOffsets){
+        requestAnimationFrame(()=> {
+            const start  = Math.min(selection.start, selection.end)
+            const end = Math.max(selection.start, selection.end)
+
+            const walker = document.createTreeWalker(
+                root,
+                NodeFilter.SHOW_TEXT
+            )
+
+            let node: null | Node
+
+            let currentOffset = 0
+            let startFound = false
+            let endFound = false
+
+            const range = document.createRange()
+
+            while((node = walker.nextNode())){
+                const nodeLength = node.textContent?.length ?? 0
+
+                if(!startFound && start <= currentOffset + nodeLength){
+                    range.setStart(node, start - currentOffset)
+                    startFound = true
+                }
+
+                if(!endFound && end <= currentOffset + nodeLength){
+                    range.setEnd(node, end - currentOffset)
+                    endFound = true
+
+                    break
+                }
+                currentOffset += nodeLength
+            }
+
+            
+
+            if(startFound && endFound){
+                const sel = window.getSelection()
+
+                if(!sel) return
+
+                sel.removeAllRanges()
+                sel.addRange(range)
+            }
+        })
+    }
+
     function deleteSelection(text: string, styles: TextStyleRange[], selection: SelectionOffsets){
         
         const {start, end} = selection
@@ -176,8 +235,6 @@ function RichTextEditor(editorProps: RichEditorProps){
                 newStyles.push(style)
                 continue
             }
-
-            skipNextModelUpdate.current = true
 
             //style after selection
             if(style.start >= end){
@@ -207,7 +264,7 @@ function RichTextEditor(editorProps: RichEditorProps){
                     {
                         ...style,
                         start,
-                        end: style.end - delta
+                        end: style.end - delta 
                     }
                 )
             }
@@ -232,6 +289,8 @@ function RichTextEditor(editorProps: RichEditorProps){
 
             const {start, end} = offsets
 
+            if(start === end) return 
+
             const editorStyles = {
                 b : {
                     key: "bold",
@@ -250,8 +309,6 @@ function RichTextEditor(editorProps: RichEditorProps){
                     value: "#FFFF8F"
                 }
             }
-
-            
 
             let style = editorStyles[key as keyof typeof editorStyles]
 
@@ -280,22 +337,40 @@ function RichTextEditor(editorProps: RichEditorProps){
 
             setStyles(newStyles)
             const html = renderStyles(text, newStyles)
-            
+
             if(editorRef.current){
                 editorRef.current.innerHTML = html
             }
 
-            setCursorAt(editorRef.current, offset)
+            setSelection(editorRef.current, offsets)
             return
         }
 
         if(key === "backspace" || key === "delete"){
             const offsets = calcSelection(editorRef.current)
 
-            if(!styles || !offsets || offsets.start === offsets.end) return
+            if(!styles || !offsets) return
 
+            const newStyles = deleteSelection(text, styles, offsets)
+            const newText = text.slice(0, offsets.start) + text.slice(offsets.end)
 
-            setStyles(deleteSelection(text, styles, offsets))
+            if(offsets.start !== offsets.end){
+                setStyles(newStyles)
+                skipNextModelUpdate.current = true
+            }
+
+            if(key === "backspace" && onBackpress){
+                const newBlock: Block = {
+                    ...block,
+                    data: {
+                        ...block.data,
+                        styles: newStyles,
+                        text: newText
+                    }
+                }
+                onBackpress(newBlock, offsets)
+            }
+            
         }
 
         if(key === "enter"){
@@ -387,6 +462,8 @@ function RichTextEditor(editorProps: RichEditorProps){
             const end = points[i+1]
 
             const cssText : string[] = []
+            let hasLink = false
+            let link = null
 
             for(const style of styles){
                 if(style.start < end && style.end > start){
@@ -419,6 +496,11 @@ function RichTextEditor(editorProps: RichEditorProps){
                         cssText.push(`color:${style.styles.color}`)
                     }
 
+                    if(style.styles.link){
+                        link = style.styles.link
+                        hasLink = true
+                    }
+
                     if(style.styles.background){
                         const backgroundColor =
                             resolvedTheme === "light"
@@ -432,6 +514,10 @@ function RichTextEditor(editorProps: RichEditorProps){
             const content = text.slice(start, end)
 
             let element = `<span style="${cssText.join(";")}">${content}</span>`;
+
+            if(hasLink){
+                element = `<a href=${link} target="_blank" style="cursor:pointer;color:blue;${cssText.join(";")}">${content}</a>`;
+            }
             result += element
         }
 
@@ -480,24 +566,29 @@ function RichTextEditor(editorProps: RichEditorProps){
             return
         }
 
+
         const offset = getCursorOffset(editorRef.current)
 
         if(offset === null) return
 
         let delta = nodeText.length - text.length
 
+        console.log({
+            delta, offset
+        });
+        
 
         setStyles(prev => {    
-            if(!prev) return
+            if(!prev) return []
 
             return prev.map(style => {
                 const newStyle = {...style}
 
-                if(style.start >= offset - 1){
+                if(style.start > offset){
                     newStyle.start += delta
                 }
 
-                if(style.end >= offset - 1){
+                if(style.end > offset){
                     newStyle.end += delta
                 }
                 return newStyle
@@ -531,6 +622,9 @@ function RichTextEditor(editorProps: RichEditorProps){
 
                     onFocusExit(resolvedBlock)
                 }
+
+                console.log(styles, text.length);
+                
             }}
             onKeyDown={(event) => {
                 if(props.onKeyDown){

@@ -9,7 +9,7 @@ export type TextWrapperProps = {
     onEnter?: (currentBlock: string, cursorPos: number, block?: Block) => void
     onChange?: (block: Block) => void
     onBlockFocus?: (blockId: string) => void
-    onBackspace?: (id: string, cursorPos: number, text: string) => void
+    onBackspace?: (id: string, cursorPos: number, block: Block) => void
     onTab?: (blockId: string) => void
     focus?: boolean
     block: Block
@@ -76,11 +76,14 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
                     onEnter(block.id, selection.start, block)
                 }
             }}
+            onBackpress={(block, selection) => {
+                if(onBackspace){
+                    onBackspace(block.id, selection.start, block)
+                }
+            }}
             onKeyDown={e => {
                 if (e.key === "Enter") {
                     e.preventDefault()
-
-                    
                 }
 
                 if (e.key === "Tab") {
@@ -97,11 +100,6 @@ function TextWrapper({ onChange, placeholder, onSpace, onEnter, onTab, tag = "di
 
                     const text = e.currentTarget.textContent ?? ""
                     onSpace(block.id, text)
-                }
-
-                if (e.key === "Backspace") {
-                    const text = inputRef.current?.textContent ?? draft
-                    if (onBackspace) onBackspace(block.id, window.getSelection()?.anchorOffset ?? -1, text)
                 }
             }}
             {...rest}
