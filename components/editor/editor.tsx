@@ -101,8 +101,7 @@ export default function Editor({ params }: EditorProps) {
 
                         
     return (
-        <EditorContext value={{editor}}>
-            <div className="w-screen">
+        <div className="w-screen">
             <header className="pt-30 pb-4 pl-6 max-w-5xl m-auto">
                 <Editable
                     tag="h1"
@@ -131,7 +130,7 @@ export default function Editor({ params }: EditorProps) {
                         }
                     }}
                     registerRef={editor.others.addTitleRef}
-                    className={cn("text-3xl font-bold", editor.state.title.length && "text-primary")}/>
+                    className={cn("text-3xl font-medium", editor.state.title.length && "text-primary")}/>
             </header>
             <main
                 className="dark:bg-background max-w-5xl h-full m-auto select-text">
@@ -143,6 +142,5 @@ export default function Editor({ params }: EditorProps) {
                     actions={rendererActions}/>
             </main>
         </div>
-        </EditorContext>
     )
 }

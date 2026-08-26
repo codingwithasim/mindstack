@@ -71,7 +71,7 @@ export function BlockWrapper({ children, blockId, onTypeSelect, onItemSelect }: 
             value: "page"
         }
     ]
-        const block = useEditorStore(s => s.blocksById[blockId])
+    const block = useEditorStore(s => s.blocksById[blockId])
 
 
     return (

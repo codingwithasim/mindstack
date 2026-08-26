@@ -101,6 +101,60 @@ function RichTextEditor(editorProps: RichEditorProps){
         }
     }
 
+    function isEqual(objA: any, objB: any){
+        if(typeof objA !== typeof objB) return false
+
+        const keysA = Object.keys(objA)
+
+        for(const key of keysA){
+            if(!(key in objB)) return false
+            if(objA[key] !== objB[key]) return false
+        }
+        return true
+    }
+
+    function normalizeStyles(styles: TextStyleRange[]){
+        const newStyles = []
+        const deleted: TextStyleRange[] = []
+
+        for(const style of styles){
+            //skip a no selection
+            if(style.start === style.end)continue
+
+            //skip an empty styles object
+            if(!Object.keys(style.styles).length) continue
+
+            if(deleted.includes(style)) {
+                continue
+            }
+
+            let skip = false
+
+            //merge two styles with same boundries
+            let merged = {...style.styles}
+            for(const s1 of styles){
+                if(style.start === s1.start && style.end === s1.end && !isEqual(style.styles, s1.styles)){
+                    merged = {
+                        ...merged,
+                        ...s1.styles
+                    }
+
+                    deleted.push(s1)
+                    skip = true
+                }
+            }
+            if(skip){
+                newStyles.push({
+                    ...style,
+                    styles: {...merged}
+                })
+                continue
+            }
+            newStyles.push(style)
+        }
+        return newStyles
+    }
+
     function toggleStyle(stylesDraft: TextStyleRange[] | undefined, start: number, end: number, load: {key: string, value: any}){
         const newStyles: TextStyleRange[] = []
         let shouldApplyStyle = true
@@ -127,7 +181,7 @@ function RichTextEditor(editorProps: RichEditorProps){
                     newStyles.push({
                         start: style.start,
                         end: start,
-                        styles: {...style.styles}
+                        styles: {[load.key] : style.styles[load.key]}
                     })
                 }
 
@@ -136,7 +190,7 @@ function RichTextEditor(editorProps: RichEditorProps){
                     newStyles.push({
                         start: end,
                         end: style.end,
-                        styles: {...style.styles}
+                        styles: {[load.key] : style.styles[load.key]}
                     })
                 }
 
@@ -151,9 +205,10 @@ function RichTextEditor(editorProps: RichEditorProps){
 
                 if(Object.keys(styleWithoutCurrent.styles).length){
 
+                    console.log('adding:', styleWithoutCurrent.styles);
+                    
                     newStyles.push({
-                        start,
-                        end,
+                        ...style,
                         styles: {...styleWithoutCurrent.styles}
                     })
                 }
@@ -277,7 +332,7 @@ function RichTextEditor(editorProps: RichEditorProps){
         if(!styles) return
     }, [styles])
 
-    const handleKeyDown = (root: KeyboardEvent) => {
+    const handleKeyDown = (root: React.KeyboardEvent<HTMLDivElement>) => {
         const key: string = root.key.toLowerCase();
 
         if(!editorRef.current ) return
@@ -307,6 +362,10 @@ function RichTextEditor(editorProps: RichEditorProps){
                 h: {
                     key: "background",
                     value: "#FFFF8F"
+                },
+                e: {
+                    key: "inlineCode",
+                    value: true
                 }
             }
 
@@ -328,13 +387,19 @@ function RichTextEditor(editorProps: RichEditorProps){
             if(offset === null) return
 
             root.preventDefault()
-            const newStyles = toggleStyle(
+            let newStyles = toggleStyle(
                 styles,
                 start,
                 end,
                 style
             )
 
+            console.log("Before normalization:", newStyles);
+            
+            newStyles = normalizeStyles(newStyles)
+
+            console.log("After normalization:", newStyles);
+            
             setStyles(newStyles)
             const html = renderStyles(text, newStyles)
 
@@ -349,9 +414,9 @@ function RichTextEditor(editorProps: RichEditorProps){
         if(key === "backspace" || key === "delete"){
             const offsets = calcSelection(editorRef.current)
 
-            if(!styles || !offsets) return
+            if(!styles || offsets === undefined) return
 
-            const newStyles = deleteSelection(text, styles, offsets)
+            const newStyles = normalizeStyles(deleteSelection(text, styles, offsets))
             const newText = text.slice(0, offsets.start) + text.slice(offsets.end)
 
             if(offsets.start !== offsets.end){
@@ -383,7 +448,7 @@ function RichTextEditor(editorProps: RichEditorProps){
             let newText = text
 
             if(offsets.start !== offsets.end){
-                newStyles = deleteSelection(text, styles ?? [], offsets)
+                newStyles = normalizeStyles(deleteSelection(text, styles ?? [], offsets))
                 newText = text.slice(0, offsets.start) + text.slice(offsets.end)
             }
 
@@ -496,6 +561,17 @@ function RichTextEditor(editorProps: RichEditorProps){
                         cssText.push(`color:${style.styles.color}`)
                     }
 
+                    if (style.styles.inlineCode) {
+                        cssText.push(
+                            "font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,'Liberation Mono','Courier New',monospace;" +
+                            "font-size:0.9em;" +
+                            "background:rgba(135,131,120,0.15);" +
+                            "color:#eb5757;" +
+                            "padding:0.1em 0.25em;" +
+                            "border-radius:3px;"
+                        )
+                    }
+
                     if(style.styles.link){
                         link = style.styles.link
                         hasLink = true
@@ -511,7 +587,7 @@ function RichTextEditor(editorProps: RichEditorProps){
                 }
             }
 
-            const content = text.slice(start, end)
+            const content = escapeHtml(text.slice(start, end))
 
             let element = `<span style="${cssText.join(";")}">${content}</span>`;
 
@@ -522,6 +598,15 @@ function RichTextEditor(editorProps: RichEditorProps){
         }
 
         return result
+    }
+
+    function escapeHtml(text: string) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
     }
 
     function getCursorOffset(root: Node): number | null {
@@ -578,22 +663,29 @@ function RichTextEditor(editorProps: RichEditorProps){
         });
         
 
-        setStyles(prev => {    
-            if(!prev) return []
 
-            return prev.map(style => {
-                const newStyle = {...style}
+        if(!styles){
+            setStyles([])
+            return
+        }
 
-                if(style.start > offset){
-                    newStyle.start += delta
-                }
+        const newStyles = []
 
-                if(style.end > offset){
-                    newStyle.end += delta
-                }
-                return newStyle
-            })
-        })
+        for(const style of styles){
+            const newStyle = {...style}
+
+            if(style.start > offset){
+                newStyle.start += delta
+            }
+
+            if(style.end > offset){
+                newStyle.end += delta
+            }
+
+            newStyles.push(newStyle)
+        }
+
+        setStyles(normalizeStyles(newStyles))
     }
 
 

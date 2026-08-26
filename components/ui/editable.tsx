@@ -13,7 +13,7 @@ type EditableProps = {
     registerRef?: (el: HTMLDivElement) => void
     tag?: string
     placeholder?: string
-} & HTMLAttributes<HTMLDivElement>
+} & React.HTMLAttributes    <HTMLDivElement>
 
 function Editable({manageContent = true, value: controlledValue, defaultValue = "", placeholder = "", tag="div", requestFocus= false, onChange, registerRef, className, ...props}: EditableProps, ref: ForwardedRef<HTMLDivElement>) {
     const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)

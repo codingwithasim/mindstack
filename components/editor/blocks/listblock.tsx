@@ -18,14 +18,7 @@ export default function ListBlock({listType="ordered", index, ...props}: ListPro
         
         if(!onChange) return;
 
-        onChange({...block, data: {text: block.data.text, checked: val}})
-
-        api.blocks.updateBlock(block.id, {
-            data: {
-                text: block.data.text,
-                checked: val
-            }
-        })
+        onChange({...block, data: {...block.data, checked: val}})
     }
 
     return (

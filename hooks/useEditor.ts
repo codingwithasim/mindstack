@@ -555,6 +555,7 @@ export default function useEditor(pageId: number) {
             cursorRef.current.delete(id)
         }
     }
+    
 
     const enterKeyRef = useRef<number>(null)
     const counter = useRef<number>(0)
@@ -563,6 +564,7 @@ export default function useEditor(pageId: number) {
         blockId: string
         offset: number
     } | null>(null)
+
 
     const handleEnter = async (blockId: string, cursorPos: number, block?: Block) => {
 
@@ -804,7 +806,7 @@ export default function useEditor(pageId: number) {
         let data : Partial<{
             id: number
             title: string
-        }>
+        }> = {}
 
         if(block.type === "page"){
             try{
@@ -820,11 +822,9 @@ export default function useEditor(pageId: number) {
             
         }
 
-        if(data){
-            block["data"] = {
-                ...block.data,
-                pageId: data.id
-            }
+        block["data"] = {
+            ...block.data,
+            pageId: data.id
         }
 
         updateBlock(block.id, block)
@@ -932,9 +932,7 @@ export default function useEditor(pageId: number) {
         setFocusedIndex(prevIndex)
         setFocusedBlockId(blocks[prevIndex].id)
 
-        const mergedLength: number = resolvedData.text.length
-
-        focusAt(merged.id, mergedLength)
+        setCursorAt(merged.id, prevBlock.data.text.length)
 
         await api.blocks.updateBlock(blocks[prevIndex].id, { data: resolvedData })
         await api.blocks.deleteBlock(blockId)
